@@ -79,3 +79,10 @@ This repository adheres strictly to the **Free-Only and Permissive Open-Source c
 | **Tailwind CSS** | Library (Styling) | MIT | [tailwindlabs/tailwindcss](https://github.com/tailwindlabs/tailwindcss) |
 | **React Router** | Library (Client Routing) | MIT | [remix-run/react-router](https://github.com/remix-run/react-router) |
 | **Lucide React** | Library (Icons) | ISC | [lucide-icons/lucide](https://github.com/lucide-icons/lucide) |
+| **@tanstack/react-query** | Library (Async State Management) | MIT | [TanStack/query](https://github.com/TanStack/query) |
+| **react-markdown** | Library (Markdown Renderer) | MIT | [remarkjs/react-markdown](https://github.com/remarkjs/react-markdown) |
+| **remark-gfm** | Library (GitHub Flavored Markdown Plugin) | MIT | [remarkjs/remark-gfm](https://github.com/remarkjs/remark-gfm) |
+| **Recharts** | Library (Charting & Visualizations) | MIT | [recharts/recharts](https://github.com/recharts/recharts) |
+| **openapi-typescript** | Tool (OpenAPI TypeScript Generator) | MIT | [openapi-ts/openapi-typescript](https://github.com/openapi-ts/openapi-typescript) |
+| **Vitest** | Tool (Unit & Integration Testing) | MIT | [vitest-dev/vitest](https://github.com/vitest-dev/vitest) |
+| **Testing Library (@testing-library/react)** | Library (UI Component Testing) | MIT | [testing-library/react-testing-library](https://github.com/testing-library/react-testing-library) |

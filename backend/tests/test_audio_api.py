@@ -155,3 +155,43 @@ async def test_audio_transcribe_rejects_exceeded_duration(
     )
     assert res.status_code == 400
     assert "exceeds maximum allowed limit" in res.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_audio_file_download_and_isolation(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    auth_headers_b: dict[str, str],
+) -> None:
+    """Verify audio file streaming endpoint with user isolation."""
+    wav_bytes = make_test_wav_bytes(duration_sec=1.0)
+
+    # 1. Upload audio
+    upload_res = await client.post(
+        "/api/v1/audio/transcribe",
+        files={"file": ("test_stream.wav", wav_bytes, "audio/wav")},
+        headers=auth_headers,
+    )
+    assert upload_res.status_code == 202
+    job_id = upload_res.json()["id"]
+
+    for _ in range(100):
+        await asyncio.sleep(0.1)
+        j_res = await client.get(f"/api/v1/jobs/{job_id}", headers=auth_headers)
+        if j_res.json()["status"] == "done":
+            break
+
+    att_id = j_res.json()["result"]["attachment_id"]
+
+    # 2. User A downloads audio file
+    file_res = await client.get(f"/api/v1/audio/{att_id}/file", headers=auth_headers)
+    assert file_res.status_code == 200
+    assert len(file_res.content) == len(wav_bytes)
+
+    # 3. User B cannot access User A's audio file -> 404
+    forbidden_res = await client.get(f"/api/v1/audio/{att_id}/file", headers=auth_headers_b)
+    assert forbidden_res.status_code == 404
+
+    # 4. Unauthenticated -> 401
+    unauth_res = await client.get(f"/api/v1/audio/{att_id}/file")
+    assert unauth_res.status_code == 401

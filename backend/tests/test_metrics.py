@@ -92,3 +92,59 @@ def test_metric_never_crashes_on_invalid_db() -> None:
     )
     # Never raises, returns None gracefully
     assert result is None
+
+
+import pytest
+from httpx import AsyncClient
+
+
+@pytest.mark.asyncio
+async def test_get_metrics_summary_endpoint(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    db: Session,
+) -> None:
+    # 1. Unauthenticated request -> 401
+    unauth = await client.get("/api/v1/metrics/summary")
+    assert unauth.status_code == 401
+
+    # 2. Add some test metrics
+    persist_metric(
+        component="llm",
+        operation="generate",
+        latency_ms=150.0,
+        extra={"tokens_per_sec": 24.5},
+        db=db,
+    )
+    persist_metric(
+        component="llm",
+        operation="generate",
+        latency_ms=250.0,
+        extra={"tokens_per_sec": 26.0},
+        db=db,
+    )
+    persist_metric(
+        component="asr",
+        operation="transcribe",
+        latency_ms=500.0,
+        extra={"rtf": 0.25},
+        db=db,
+    )
+
+    # 3. Authenticated request -> 200
+    res = await client.get("/api/v1/metrics/summary", headers=auth_headers)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["total_operations"] >= 3
+    assert data["average_latency_ms"] > 0
+    assert "components" in data
+    assert "recent_time_series" in data
+    assert "system_status" in data
+
+    # Verify component aggregation
+    comps = {c["component"]: c for c in data["components"]}
+    assert "llm" in comps
+    assert comps["llm"]["count"] >= 2
+    assert comps["llm"]["avg_tokens_per_sec"] is not None
+    assert "asr" in comps
+    assert comps["asr"]["avg_rtf"] == 0.25

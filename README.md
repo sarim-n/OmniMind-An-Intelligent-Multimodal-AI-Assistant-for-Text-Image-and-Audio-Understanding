@@ -388,3 +388,72 @@ By default, `MOCK_MODELS=true` is enabled for fast offline tests and CI. To run 
    make run
    ```
 
+---
+
+## Frontend (React + Vite + TypeScript + Tailwind CSS v4)
+
+OmniMind provides a modern single-page application (SPA) featuring:
+- **Reactive Chat**: Streaming SSE response generation, Markdown formatting, user/assistant avatars, inline multimodal citation chips (`[audio:<file> mm:ss]`, `[image:<file>]`), and executive report cards.
+- **Multimodal Composer**: Drag-and-drop image upload with live thumbnail strip, audio file upload, in-browser microphone recording with duration counter and audio preview, language selector (Auto, English, Hindi, Tamil), and client-side format/size validation.
+- **Inspectors & Viewers**:
+  - **Image Viewer Modal**: Zoom in/out, panning, detected object bounding boxes with confidence scores, quality alerts, interactive VQA, and authenticated OpenCV annotated image toggle.
+  - **Audio Viewer Modal**: Authenticated audio player with synchronized transcript, active sentence highlighting, click-to-seek, language badge, and conversational insights.
+  - **Meeting Insights Panel**: Inferred agenda, consensus decisions, action item assignments table (with copy-to-clipboard), topic duration timeline (`recharts`), and talk-time distribution (only rendered when speaker diarization is available).
+- **Knowledge Vault**: Cross-modal semantic search across text, transcripts, and visual scenes with optional LLM reranking, search by image upload, deep links back to conversational timestamps, and vector reindexing.
+- **Structured Reports**: Catalog of synthesized reports, report generation dialog (conversation picker, language, length, metrics/image switches), live job polling, and direct authenticated PDF downloads.
+- **Telemetry & Metrics**: Real-time p50/p95 latency metrics, throughput charts, host CPU/RAM gauges, and component breakdown table.
+- **Theme & Access**: Dark/light mode switcher with persistent preference, accessible ARIA attributes, and automatic Mock Mode banner.
+
+### Frontend Setup & Development
+
+1. **Install Dependencies**:
+   ```powershell
+   make frontend-install
+   # or: cd frontend && npm install
+   ```
+
+2. **Generate API Types from Backend OpenAPI**:
+   ```powershell
+   cd frontend
+   npm run gen:api
+   ```
+
+3. **Start Development Server**:
+   ```powershell
+   make frontend-dev
+   # or: cd frontend && npm run dev
+   ```
+   The application will be accessible at [http://localhost:5173](http://localhost:5173).
+
+4. **Run Frontend Tests & Quality Checks**:
+   ```powershell
+   make frontend-test    # Vitest unit and component tests
+   npm run lint          # oxlint static analysis
+   npm run build         # TypeScript compilation & Vite production build
+   ```
+
+### Browser Support Note for MediaRecorder (Microphone Recording)
+In-browser audio capture utilizes the standard W3C `navigator.mediaDevices.getUserMedia` and `MediaRecorder` APIs:
+- **Supported Browsers**: Google Chrome (47+), Microsoft Edge (79+), Mozilla Firefox (25+), Safari (14.1+).
+- **Security Context**: Browsers restrict microphone access to **Secure Contexts** (`https://`) or `localhost` / `127.0.0.1`.
+- **Permission Denials**: If microphone permission is denied, the Composer gracefully degrades and informs the user via an in-app banner and toast notification without crashing.
+
+### 3-Modality End-to-End Walkthrough
+To run the full multimodal flow in the frontend:
+1. **Launch Backend**: Ensure backend is running (`MOCK_MODELS=true make run` or `uvicorn app.main:app --port 8000`).
+2. **Launch Frontend**: Run `make frontend-dev` and open `http://localhost:5173`.
+3. **Register / Sign In**:
+   - Navigate to `/register` and create an account (e.g. `analyst@omnimind.local` / `Password123!`).
+   - The app signs you in automatically and redirects to `/chat`.
+4. **Send 3-Modality Message**:
+   - Type a prompt in the textarea: *"Review this diagram and cross-reference our audio sync commitments."*
+   - Click the **Image icon** or drag-and-drop an image (`.png` / `.jpg`).
+   - Click the **Microphone icon** to record audio (or click the **Paperclip** to upload a `.wav` file).
+   - Select your target language (e.g., *English* or *Hindi*).
+   - Click **Send**.
+5. **View Streamed Response & Citations**:
+   - Watch live SSE status chips (*Transcribing audio...*, *Analysing image...*).
+   - Read the streamed response containing clickable citation chips like `[image:diagram.png]` and `[audio:meeting.wav 00:15]`.
+   - Click `[image:diagram.png]` to open the Image Viewer and toggle OpenCV bounding boxes.
+   - Click `[audio:meeting.wav 00:15]` to open the Audio Viewer, seek audio, and inspect meeting insights.
+

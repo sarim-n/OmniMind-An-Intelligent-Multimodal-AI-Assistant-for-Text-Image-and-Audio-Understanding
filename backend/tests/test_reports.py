@@ -229,7 +229,7 @@ def test_pdf_export_multipage_pypdf_validation(
 
     # Validate Cover Page and Interior Pages
     page_0_text = reader.pages[0].extract_text()
-    assert "OMNIMIND MULTIMODAL INTELLIGENCE" in page_0_text
+    assert "OMNIMIND MULTIMODAL ASSISTANT" in page_0_text
     assert conv.title in page_0_text or "Quarterly Operations" in page_0_text
 
     page_1_text = reader.pages[1].extract_text()

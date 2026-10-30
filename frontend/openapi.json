@@ -1,0 +1,3908 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Intelligent Multimodal AI Assistant",
+    "description": "Backend API for the Intelligent Multimodal AI Assistant",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Returns root health status, profile, mock status, and configured models.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Returns the health status, hardware profile, model configuration, and version.",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register new user",
+        "description": "Create a new user account with unique email and password.",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "User login",
+        "description": "Authenticate user with OAuth2 form data (username=email, password) or JSON body to receive a JWT access token.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "User email address"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "grant_type": {
+                    "type": "string"
+                  },
+                  "scope": {
+                    "type": "string"
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ]
+              }
+            },
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "type": "object",
+                "required": [
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get current user profile",
+        "description": "Fetch profile data of the currently authenticated user.",
+        "operationId": "get_me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations": {
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "Create conversation",
+        "description": "Create a new conversation session scoped to the authenticated user.",
+        "operationId": "create_conversation_api_v1_conversations_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "List conversations",
+        "description": "Retrieve paginated list of conversations belonging to the current user.",
+        "operationId": "list_conversations_api_v1_conversations_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "Items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "Get conversation details",
+        "description": "Fetch a specific conversation by ID (returns 404 if not found or unauthorized).",
+        "operationId": "get_conversation_api_v1_conversations__conversation_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "Update conversation",
+        "description": "Rename or update summary for a conversation.",
+        "operationId": "update_conversation_api_v1_conversations__conversation_id__patch",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "Delete conversation",
+        "description": "Delete conversation, cascading delete to messages, attachments, and vector memories.",
+        "operationId": "delete_conversation_api_v1_conversations__conversation_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/messages": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "List messages",
+        "description": "Get paginated list of messages for a given conversation.",
+        "operationId": "list_messages_api_v1_conversations__conversation_id__messages_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page",
+              "default": 50,
+              "title": "Page Size"
+            },
+            "description": "Items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageList"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "Send multimodal message and receive assistant reply",
+        "description": "Send user message (text, images[], audio[]) and receive SSE stream (default) or JSON message object if ?stream=false.",
+        "operationId": "create_message_api_v1_conversations__conversation_id__messages_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "stream",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Whether to stream assistant response via SSE",
+              "default": true,
+              "title": "Stream"
+            },
+            "description": "Whether to stream assistant response via SSE"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE stream or completed assistant message",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "201": {
+            "description": "Message created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "Text prompt or question"
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "Optional ISO language code"
+                  },
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Image attachments"
+                  },
+                  "audio": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Audio attachments"
+                  }
+                }
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "language": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string",
+                    "default": "user"
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/attachments": {
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "Upload media attachment",
+        "description": "Upload and sniff image or audio attachment linked to a conversation.",
+        "operationId": "upload_attachment_api_v1_conversations__conversation_id__attachments_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "'image' or 'audio'",
+              "title": "Kind"
+            },
+            "description": "'image' or 'audio'"
+          },
+          {
+            "name": "message_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional associated message ID",
+              "title": "Message Id"
+            },
+            "description": "Optional associated message ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_attachment_api_v1_conversations__conversation_id__attachments_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttachmentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audio/transcribe": {
+      "post": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Transcribe audio file or attachment",
+        "description": "Queue an asynchronous audio transcription job accepting either a direct file upload or attachment ID.",
+        "operationId": "transcribe_audio_api_v1_audio_transcribe_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audio/{attachment_id}/transcript": {
+      "get": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Get audio transcript",
+        "description": "Retrieve previously generated transcription record for an audio attachment.",
+        "operationId": "get_audio_transcript_api_v1_audio__attachment_id__transcript_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audio/{attachment_id}/insights": {
+      "post": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Generate insights from audio transcript",
+        "description": "Run structured LLM analysis (summaries, action items, topics, entities) on an audio transcript.",
+        "operationId": "generate_audio_insights_api_v1_audio__attachment_id__insights_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AudioInsightsRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioInsights"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audio/{attachment_id}/meeting": {
+      "get": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Get structured meeting insights",
+        "description": "Retrieve structured meeting insights, agenda, decisions, action items, and topic timelines.",
+        "operationId": "get_meeting_insights_api_v1_audio__attachment_id__meeting_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingInsights"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Force regenerate meeting insights",
+        "description": "Forces re-extraction of meeting insights, agenda, decisions, and timeline charts.",
+        "operationId": "force_regenerate_meeting_insights_api_v1_audio__attachment_id__meeting_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingInsights"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audio/{attachment_id}/file": {
+      "get": {
+        "tags": [
+          "Audio"
+        ],
+        "summary": "Download audio attachment file",
+        "description": "Stream the raw audio file for playback with ownership verification.",
+        "operationId": "get_audio_file_api_v1_audio__attachment_id__file_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/images/analyze": {
+      "post": {
+        "tags": [
+          "Images"
+        ],
+        "summary": "Analyze image",
+        "description": "Queue an asynchronous computer vision analysis job accepting either direct file upload or attachment ID.",
+        "operationId": "analyze_image_api_v1_images_analyze_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRead"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/images/{attachment_id}/analysis": {
+      "get": {
+        "tags": [
+          "Images"
+        ],
+        "summary": "Get image analysis",
+        "description": "Retrieve previously generated visual analysis record for an image attachment.",
+        "operationId": "get_image_analysis_api_v1_images__attachment_id__analysis_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageAnalysisRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/images/{attachment_id}/ask": {
+      "post": {
+        "tags": [
+          "Images"
+        ],
+        "summary": "Ask a question about an image (VQA)",
+        "description": "Visual Question Answering using VLM with optional conversation history context.",
+        "operationId": "ask_image_question_api_v1_images__attachment_id__ask_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageAskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageAskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/images/{attachment_id}/annotated": {
+      "get": {
+        "tags": [
+          "Images"
+        ],
+        "summary": "Serve annotated detection image",
+        "description": "Return OpenCV-annotated derived image with bounding boxes for the owner.",
+        "operationId": "get_annotated_image_api_v1_images__attachment_id__annotated_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "attachment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Attachment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get background job status",
+        "description": "Retrieve execution state, progress, and result for an asynchronous job.",
+        "operationId": "get_job_status_api_v1_jobs__job_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "List user reports",
+        "description": "Retrieve all generated reports associated with conversations owned by the authenticated user.",
+        "operationId": "list_reports_api_v1_reports_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReportListItem"
+                  },
+                  "type": "array",
+                  "title": "Response List Reports Api V1 Reports Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Generate multimodal intelligence report",
+        "description": "Enqueue an asynchronous background job to synthesize stored conversation data into a report.",
+        "operationId": "create_report_api_v1_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/{report_id}": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Get report details",
+        "description": "Retrieve full structured JSON content for a specific report.",
+        "operationId": "get_report_api_v1_reports__report_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Delete report",
+        "description": "Purge a report record from the database and remove its compiled PDF file from disk.",
+        "operationId": "delete_report_api_v1_reports__report_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Delete Report Api V1 Reports  Report Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report_id}/pdf": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Download compiled PDF report",
+        "description": "Download the compiled PDF report, generating it on demand if the file is missing from disk.",
+        "operationId": "download_report_pdf_api_v1_reports__report_id__pdf_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "report_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Report Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Cross-modal semantic search",
+        "description": "Search Knowledge Vault text, audio transcripts, and image analyses with reciprocal rank fusion.",
+        "operationId": "search_vault_api_v1_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/search/by-image": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search by image",
+        "description": "Retrieve visually similar images and associated contextual transcripts using SigLIP image embeddings.",
+        "operationId": "search_by_image_api_v1_search_by_image_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_search_by_image_api_v1_search_by_image_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/search/reindex": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Reindex Knowledge Vault",
+        "description": "Triggers an asynchronous background job to rebuild the current user's Knowledge Vault index.",
+        "operationId": "reindex_vault_api_v1_search_reindex_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReindexResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/search/stats": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Knowledge Vault stats",
+        "description": "Retrieve counts of indexed items in Knowledge Vault categorized by modality.",
+        "operationId": "get_vault_stats_api_v1_search_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/metrics/summary": {
+      "get": {
+        "tags": [
+          "Metrics"
+        ],
+        "summary": "Get telemetry and performance metrics summary",
+        "description": "Calculate p50/p95 latency, throughput, resource usage, and recent time-series metrics.",
+        "operationId": "get_metrics_summary_api_v1_metrics_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionItem": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "description": "Person or entity responsible",
+            "default": "Unassigned"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task",
+            "description": "Actionable task description"
+          },
+          "deadline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline",
+            "description": "Due date or timeframe, if mentioned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task"
+        ],
+        "title": "ActionItem",
+        "description": "Action item identified within spoken conversation."
+      },
+      "AttachmentRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "mime": {
+            "type": "string",
+            "title": "Mime"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "type",
+          "path",
+          "mime",
+          "size",
+          "created_at"
+        ],
+        "title": "AttachmentRead",
+        "description": "Attachment response payload."
+      },
+      "AudioInsights": {
+        "properties": {
+          "short_summary": {
+            "type": "string",
+            "title": "Short Summary",
+            "description": "One or two sentence executive overview"
+          },
+          "detailed_summary": {
+            "type": "string",
+            "title": "Detailed Summary",
+            "description": "Comprehensive paragraph summary"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Points",
+            "description": "Core takeaways"
+          },
+          "topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Topics",
+            "description": "Main themes discussed"
+          },
+          "entities": {
+            "$ref": "#/components/schemas/Entities",
+            "description": "Extracted named entities"
+          },
+          "action_items": {
+            "items": {
+              "$ref": "#/components/schemas/ActionItem"
+            },
+            "type": "array",
+            "title": "Action Items",
+            "description": "Assigned action items"
+          },
+          "decisions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisions",
+            "description": "Agreements and decisions reached"
+          },
+          "open_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Open Questions",
+            "description": "Unresolved topics or questions"
+          },
+          "sentiment": {
+            "type": "string",
+            "title": "Sentiment",
+            "description": "Overall conversational tone",
+            "default": "neutral"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors",
+            "description": "Diagnostic errors if partial results returned"
+          }
+        },
+        "type": "object",
+        "required": [
+          "short_summary",
+          "detailed_summary"
+        ],
+        "title": "AudioInsights",
+        "description": "Structured analytical insights derived from an audio transcript."
+      },
+      "AudioInsightsRequest": {
+        "properties": {
+          "output_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Language",
+            "description": "Preferred language for output insights (defaults to transcript language)"
+          }
+        },
+        "type": "object",
+        "title": "AudioInsightsRequest",
+        "description": "Payload to request insights extraction on an audio transcript."
+      },
+      "Body_search_by_image_api_v1_search_by_image_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "description": "Query image file"
+          },
+          "top_k": {
+            "type": "integer",
+            "title": "Top K",
+            "default": 10
+          },
+          "rerank": {
+            "type": "boolean",
+            "title": "Rerank",
+            "default": false
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_search_by_image_api_v1_search_by_image_post"
+      },
+      "Body_upload_attachment_api_v1_conversations__conversation_id__attachments_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_attachment_api_v1_conversations__conversation_id__attachments_post"
+      },
+      "ComponentMetricSummary": {
+        "properties": {
+          "component": {
+            "type": "string",
+            "title": "Component"
+          },
+          "operation": {
+            "type": "string",
+            "title": "Operation"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "p50_latency_ms": {
+            "type": "number",
+            "title": "P50 Latency Ms"
+          },
+          "p95_latency_ms": {
+            "type": "number",
+            "title": "P95 Latency Ms"
+          },
+          "avg_latency_ms": {
+            "type": "number",
+            "title": "Avg Latency Ms"
+          },
+          "avg_tokens_per_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Tokens Per Sec"
+          },
+          "avg_rtf": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Rtf"
+          },
+          "avg_cpu_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Cpu Pct"
+          },
+          "avg_ram_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Ram Mb"
+          },
+          "avg_gpu_mem_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Gpu Mem Mb"
+          }
+        },
+        "type": "object",
+        "required": [
+          "component",
+          "operation",
+          "count",
+          "p50_latency_ms",
+          "p95_latency_ms",
+          "avg_latency_ms"
+        ],
+        "title": "ComponentMetricSummary",
+        "description": "Aggregated latency and resource statistics per component and operation."
+      },
+      "ConversationCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Title",
+            "default": "New Conversation"
+          }
+        },
+        "type": "object",
+        "title": "ConversationCreate",
+        "description": "Payload to create a new conversation."
+      },
+      "ConversationList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "ConversationList",
+        "description": "Paginated list of conversations."
+      },
+      "ConversationRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "title",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ConversationRead",
+        "description": "Conversation response schema."
+      },
+      "ConversationUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "title": "ConversationUpdate",
+        "description": "Payload to update/rename a conversation."
+      },
+      "DetectedObject": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Object category name"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "description": "Detection confidence score between 0.0 and 1.0"
+          },
+          "bbox": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Bbox",
+            "description": "Bounding box in [x1, y1, x2, y2] format"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "confidence",
+          "bbox"
+        ],
+        "title": "DetectedObject",
+        "description": "Detected visual object with bounding coordinates and classification confidence."
+      },
+      "DominantColor": {
+        "properties": {
+          "hex": {
+            "type": "string",
+            "title": "Hex",
+            "description": "Hexadecimal color string e.g. #FF0000"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nearest human-readable color name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hex",
+          "name"
+        ],
+        "title": "DominantColor",
+        "description": "Dominant image color representation."
+      },
+      "Entities": {
+        "properties": {
+          "people": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "People",
+            "description": "Names of individuals"
+          },
+          "orgs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Orgs",
+            "description": "Organizations and companies"
+          },
+          "dates": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dates",
+            "description": "Dates, times, or milestones"
+          },
+          "places": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Places",
+            "description": "Locations, cities, or venues"
+          }
+        },
+        "type": "object",
+        "title": "Entities",
+        "description": "Named entities categorized by type."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current service health status",
+            "default": "ok"
+          },
+          "profile": {
+            "type": "string",
+            "title": "Profile",
+            "description": "Active hardware profile (cpu, gpu_low, gpu_mid, gpu_high)"
+          },
+          "mock_models": {
+            "type": "boolean",
+            "title": "Mock Models",
+            "description": "Whether model inference is mocked"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Application version"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp",
+            "description": "UTC ISO timestamp of health check"
+          },
+          "models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Models",
+            "description": "Active model identifiers for current profile"
+          },
+          "asr_settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Asr Settings",
+            "description": "Active ASR configuration parameters"
+          },
+          "vision_settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Vision Settings",
+            "description": "Active Vision and VLM configuration parameters"
+          },
+          "orchestration_settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Orchestration Settings",
+            "description": "Active Multimodal Orchestration configuration parameters"
+          },
+          "vault_settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Vault Settings",
+            "description": "Active Knowledge Vault and Search configuration parameters"
+          },
+          "report_settings": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object",
+            "title": "Report Settings",
+            "description": "Active Report and PDF configuration parameters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile",
+          "mock_models",
+          "version",
+          "timestamp",
+          "models"
+        ],
+        "title": "HealthResponse",
+        "description": "Health check response schema."
+      },
+      "ImageAnalysisRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "attachment_id": {
+            "type": "string",
+            "title": "Attachment Id"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          },
+          "objects": {
+            "items": {
+              "$ref": "#/components/schemas/DetectedObject"
+            },
+            "type": "array",
+            "title": "Objects"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "ocr_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Text"
+          },
+          "quality": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Quality"
+          },
+          "dominant_colors": {
+            "items": {
+              "$ref": "#/components/schemas/DominantColor"
+            },
+            "type": "array",
+            "title": "Dominant Colors"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "annotated_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annotated Path"
+          },
+          "timing_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timing Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "attachment_id"
+        ],
+        "title": "ImageAnalysisRead",
+        "description": "Complete image analysis representation returned by API endpoints."
+      },
+      "ImageAskRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Question",
+            "description": "Question about the image content"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id",
+            "description": "Optional linked conversation for context memory"
+          }
+        },
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "title": "ImageAskRequest",
+        "description": "Visual Question Answering (VQA) request."
+      },
+      "ImageAskResponse": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "description": "VLM answer to user question"
+          },
+          "timing_ms": {
+            "type": "number",
+            "title": "Timing Ms",
+            "description": "Latency of inference in milliseconds"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "timing_ms"
+        ],
+        "title": "ImageAskResponse",
+        "description": "Visual Question Answering response."
+      },
+      "JobRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress": {
+            "type": "number",
+            "title": "Progress",
+            "description": "Completion progress from 0.0 to 1.0",
+            "default": 0.0
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "user_id",
+          "type",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "JobRead",
+        "description": "Job status and result schema."
+      },
+      "MeetingActionItem": {
+        "properties": {
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "description": "Task owner or responsible party",
+            "default": "Unassigned"
+          },
+          "task": {
+            "type": "string",
+            "title": "Task",
+            "description": "Actionable deliverable"
+          },
+          "deadline": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline",
+            "description": "Target completion timeframe"
+          },
+          "source_timestamp": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Timestamp",
+            "description": "Audio timestamp reference (e.g. 01:23 or 83.5s)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task"
+        ],
+        "title": "MeetingActionItem",
+        "description": "Action item derived specifically from meeting audio with provenance timestamp."
+      },
+      "MeetingInsights": {
+        "properties": {
+          "inferred_agenda": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Inferred Agenda",
+            "description": "Inferred meeting agenda items"
+          },
+          "decisions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisions",
+            "description": "Decisions and consensus reached"
+          },
+          "action_items": {
+            "items": {
+              "$ref": "#/components/schemas/MeetingActionItem"
+            },
+            "type": "array",
+            "title": "Action Items",
+            "description": "Table of assigned action items"
+          },
+          "unresolved_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unresolved Questions",
+            "description": "Unresolved topics or parking lot items"
+          },
+          "per_topic_timeline": {
+            "items": {
+              "$ref": "#/components/schemas/TopicTimelineItem"
+            },
+            "type": "array",
+            "title": "Per Topic Timeline",
+            "description": "Ordered chronological topic segments"
+          },
+          "executive_summary": {
+            "type": "string",
+            "title": "Executive Summary",
+            "description": "Cohesive 5-line executive summary of meeting outcomes"
+          },
+          "talk_time": {
+            "items": {
+              "$ref": "#/components/schemas/TalkTimeItem"
+            },
+            "type": "array",
+            "title": "Talk Time",
+            "description": "Talk-time dataset for speaker distribution charts"
+          },
+          "topic_timeline": {
+            "items": {
+              "$ref": "#/components/schemas/TopicTimelineChartItem"
+            },
+            "type": "array",
+            "title": "Topic Timeline",
+            "description": "Topic-timeline dataset for progression charts"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors",
+            "description": "Diagnostic messages or warnings if partial"
+          }
+        },
+        "type": "object",
+        "required": [
+          "executive_summary"
+        ],
+        "title": "MeetingInsights",
+        "description": "Comprehensive analytical meeting insights structured for executive review and charts."
+      },
+      "MessageList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MessageRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "MessageList",
+        "description": "Paginated list of messages."
+      },
+      "MessageRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "modalities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Modalities"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "attachments": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentRead"
+            },
+            "type": "array",
+            "title": "Attachments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "role",
+          "content",
+          "created_at"
+        ],
+        "title": "MessageRead",
+        "description": "Message response schema."
+      },
+      "MetricsSummaryResponse": {
+        "properties": {
+          "total_operations": {
+            "type": "integer",
+            "title": "Total Operations"
+          },
+          "average_latency_ms": {
+            "type": "number",
+            "title": "Average Latency Ms"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentMetricSummary"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "recent_time_series": {
+            "items": {
+              "$ref": "#/components/schemas/TimeSeriesDataPoint"
+            },
+            "type": "array",
+            "title": "Recent Time Series"
+          },
+          "system_status": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "System Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_operations",
+          "average_latency_ms"
+        ],
+        "title": "MetricsSummaryResponse",
+        "description": "Comprehensive performance dashboard summary."
+      },
+      "ReindexResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "status",
+          "message"
+        ],
+        "title": "ReindexResponse",
+        "description": "Response returned upon initiating a vault reindex job."
+      },
+      "ReportAppendix": {
+        "properties": {
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "models_used": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Models Used"
+          },
+          "processing_metrics": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Processing Metrics"
+          }
+        },
+        "type": "object",
+        "title": "ReportAppendix",
+        "description": "Metadata, source attachments, active models, and telemetry metrics."
+      },
+      "ReportAudioFinding": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "en"
+          },
+          "duration": {
+            "type": "number",
+            "title": "Duration",
+            "default": 0.0
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "default": ""
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Points"
+          },
+          "action_items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Action Items"
+          },
+          "decisions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisions"
+          },
+          "timeline": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Timeline"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "ReportAudioFinding",
+        "description": "Factual and narrative findings from an audio asset."
+      },
+      "ReportCreateRequest": {
+        "properties": {
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ReportOptions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "conversation_id"
+        ],
+        "title": "ReportCreateRequest",
+        "description": "Request payload to initiate report generation."
+      },
+      "ReportCreateResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "pending"
+          },
+          "report_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "title": "ReportCreateResponse",
+        "description": "Response returned upon submitting report generation job."
+      },
+      "ReportImageFinding": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "title": "File"
+          },
+          "caption": {
+            "type": "string",
+            "title": "Caption",
+            "default": ""
+          },
+          "objects": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Objects"
+          },
+          "extracted_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extracted Text"
+          },
+          "quality_warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Quality Warnings"
+          },
+          "qa_highlights": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Qa Highlights"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "ReportImageFinding",
+        "description": "Factual and visual findings from an image asset."
+      },
+      "ReportListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "pdf_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "title",
+          "created_at"
+        ],
+        "title": "ReportListItem",
+        "description": "Compact summary schema for report listings."
+      },
+      "ReportOptions": {
+        "properties": {
+          "sections": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sections"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "en"
+          },
+          "length": {
+            "type": "string",
+            "enum": [
+              "brief",
+              "standard",
+              "detailed"
+            ],
+            "title": "Length",
+            "default": "standard"
+          },
+          "include_images": {
+            "type": "boolean",
+            "title": "Include Images",
+            "default": true
+          },
+          "include_metrics": {
+            "type": "boolean",
+            "title": "Include Metrics",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "ReportOptions",
+        "description": "User-specified parameters for report generation."
+      },
+      "ReportResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "pdf_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Path"
+          },
+          "content": {
+            "$ref": "#/components/schemas/ReportSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "title",
+          "created_at",
+          "content"
+        ],
+        "title": "ReportResponse",
+        "description": "Detailed response schema for an individual report."
+      },
+      "ReportSchema": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language",
+            "default": "en"
+          },
+          "executive_summary": {
+            "type": "string",
+            "title": "Executive Summary",
+            "default": ""
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "audio_findings": {
+            "items": {
+              "$ref": "#/components/schemas/ReportAudioFinding"
+            },
+            "type": "array",
+            "title": "Audio Findings"
+          },
+          "image_findings": {
+            "items": {
+              "$ref": "#/components/schemas/ReportImageFinding"
+            },
+            "type": "array",
+            "title": "Image Findings"
+          },
+          "cross_modal_observations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cross Modal Observations"
+          },
+          "conclusions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conclusions"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recommendations"
+          },
+          "appendix": {
+            "$ref": "#/components/schemas/ReportAppendix"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "ReportSchema",
+        "description": "Complete structured multimodal intelligence report schema."
+      },
+      "ReportSection": {
+        "properties": {
+          "heading": {
+            "type": "string",
+            "title": "Heading"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "bullet_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bullet Points"
+          }
+        },
+        "type": "object",
+        "required": [
+          "heading",
+          "body"
+        ],
+        "title": "ReportSection",
+        "description": "Section of a structured report."
+      },
+      "SearchRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Query",
+            "description": "Natural language search query"
+          },
+          "modalities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modalities",
+            "description": "Filter by media modalities: 'text', 'audio', 'image'"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id",
+            "description": "Optional filter by conversation ID"
+          },
+          "top_k": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Top K",
+            "description": "Maximum number of ranked results to return",
+            "default": 10
+          },
+          "rerank": {
+            "type": "boolean",
+            "title": "Rerank",
+            "description": "Whether to perform LLM relevance reranking on top candidates",
+            "default": false
+          },
+          "date_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date From",
+            "description": "Optional ISO timestamp filter start"
+          },
+          "date_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date To",
+            "description": "Optional ISO timestamp filter end"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "description": "Optional language code filter (e.g. 'en', 'hi', 'ta')"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "description": "Payload for text-based semantic search across Knowledge Vault."
+      },
+      "SearchResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "total_results",
+          "results",
+          "latency_ms"
+        ],
+        "title": "SearchResponse",
+        "description": "List of retrieved search results and query execution metadata."
+      },
+      "SearchResult": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique entry identifier"
+          },
+          "modality": {
+            "type": "string",
+            "title": "Modality",
+            "description": "Media modality: 'text', 'audio', or 'image'"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "Relevance score (higher is more relevant)"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet",
+            "description": "Preview snippet or textual representation"
+          },
+          "attachment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachment Id",
+            "description": "Linked attachment ID if applicable"
+          },
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id",
+            "description": "Linked conversation ID if applicable"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start",
+            "description": "Start timestamp in seconds (for audio/transcripts)"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End",
+            "description": "End timestamp in seconds (for audio/transcripts)"
+          },
+          "deep_link": {
+            "type": "string",
+            "title": "Deep Link",
+            "description": "Client navigation deep link (e.g. /conversations/{id}?attachment={att_id}&t={start})"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "modality",
+          "score",
+          "snippet",
+          "deep_link"
+        ],
+        "title": "SearchResult",
+        "description": "Individual item retrieved across Knowledge Vault."
+      },
+      "SearchStats": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total indexed items",
+            "default": 0
+          },
+          "text": {
+            "type": "integer",
+            "title": "Text",
+            "description": "Indexed text messages and notes",
+            "default": 0
+          },
+          "audio": {
+            "type": "integer",
+            "title": "Audio",
+            "description": "Indexed audio transcript segments",
+            "default": 0
+          },
+          "image": {
+            "type": "integer",
+            "title": "Image",
+            "description": "Indexed images and captions",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "SearchStats",
+        "description": "Summary counts of indexed items in Knowledge Vault."
+      },
+      "TalkTimeItem": {
+        "properties": {
+          "speaker": {
+            "type": "string",
+            "title": "Speaker",
+            "description": "Speaker label or channel identifier"
+          },
+          "duration_sec": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Duration Sec",
+            "description": "Total speech duration in seconds"
+          },
+          "percentage": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percentage",
+            "description": "Percentage of total talk time"
+          }
+        },
+        "type": "object",
+        "required": [
+          "speaker",
+          "duration_sec",
+          "percentage"
+        ],
+        "title": "TalkTimeItem",
+        "description": "Speaker or segment speech time distribution for visual charts."
+      },
+      "TimeSeriesDataPoint": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "component": {
+            "type": "string",
+            "title": "Component"
+          },
+          "operation": {
+            "type": "string",
+            "title": "Operation"
+          },
+          "latency_ms": {
+            "type": "number",
+            "title": "Latency Ms"
+          },
+          "cpu_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cpu Pct"
+          },
+          "ram_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ram Mb"
+          },
+          "gpu_mem_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpu Mem Mb"
+          },
+          "tokens_per_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tokens Per Sec"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "timestamp",
+          "component",
+          "operation",
+          "latency_ms"
+        ],
+        "title": "TimeSeriesDataPoint",
+        "description": "Individual timestamped telemetry measurement for charting."
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token"
+        ],
+        "title": "Token",
+        "description": "Access token response schema."
+      },
+      "TopicTimelineChartItem": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "start": {
+            "type": "number",
+            "title": "Start"
+          },
+          "end": {
+            "type": "number",
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "start",
+          "end"
+        ],
+        "title": "TopicTimelineChartItem",
+        "description": "Simplified timeline entry tailored for chart visualizations."
+      },
+      "TopicTimelineItem": {
+        "properties": {
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "Topic label"
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Start",
+            "description": "Start timestamp in seconds"
+          },
+          "end": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "End",
+            "description": "End timestamp in seconds"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "Overview of discussion in this segment"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic",
+          "start",
+          "end",
+          "summary"
+        ],
+        "title": "TopicTimelineItem",
+        "description": "Segment within a chronological topic timeline."
+      },
+      "TranscriptRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "attachment_id": {
+            "type": "string",
+            "title": "Attachment Id"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "segments": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segments"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "insights": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Insights"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "attachment_id",
+          "text"
+        ],
+        "title": "TranscriptRead",
+        "description": "Transcript response model."
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "title": "Password",
+            "description": "Password must be at least 8 characters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserCreate",
+        "description": "Registration request payload."
+      },
+      "UserRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "title": "Email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "created_at"
+        ],
+        "title": "UserRead",
+        "description": "Public user response payload."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/auth/login"
+          }
+        }
+      }
+    }
+  }
+}

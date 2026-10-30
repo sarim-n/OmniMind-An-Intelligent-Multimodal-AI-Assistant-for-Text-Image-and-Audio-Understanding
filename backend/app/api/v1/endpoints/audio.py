@@ -1,6 +1,9 @@
 """Audio transcription, transcript retrieval, and insights endpoints."""
 
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
@@ -353,3 +356,41 @@ def force_regenerate_meeting_insights(
     get_search_service().index_transcript(current_user.id, conv_id, attachment.id, transcript)
 
     return insights
+
+
+@router.get(
+    "/{attachment_id}/file",
+    summary="Download audio attachment file",
+    description="Stream the raw audio file for playback with ownership verification.",
+)
+def get_audio_file(
+    attachment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """Retrieve raw audio file with user ownership check."""
+    attachment = (
+        db.query(Attachment)
+        .filter(Attachment.id == attachment_id, Attachment.user_id == current_user.id)
+        .first()
+    )
+    if not attachment or attachment.type != "audio":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audio attachment not found or access denied",
+        )
+
+    storage_root = get_storage_root()
+    phys_path = storage_root / attachment.path
+    if not phys_path.exists() or not phys_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Audio file missing from storage",
+        )
+
+    orig_name = (attachment.metadata_ or {}).get("original_filename") or Path(attachment.path).name
+    return FileResponse(
+        path=str(phys_path),
+        media_type=attachment.mime or "audio/wav",
+        filename=orig_name,
+    )

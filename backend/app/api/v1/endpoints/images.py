@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
@@ -290,4 +291,47 @@ def get_annotated_image(
         path=str(annotated_file),
         media_type="image/jpeg",
         filename=f"{attachment_id}_annotated.jpg",
+    )
+
+
+@router.get(
+    "/{attachment_id}/file",
+    summary="Serve original image file",
+    description="Return original uploaded image file with ownership verification.",
+)
+def get_image_file(
+    attachment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """Serve original image file ensuring strict owner authentication."""
+    attachment = (
+        db.query(Attachment)
+        .filter(Attachment.id == attachment_id, Attachment.user_id == current_user.id)
+        .first()
+    )
+    if not attachment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image attachment not found or unauthorized",
+        )
+
+    storage_root = get_storage_root()
+    physical_path = storage_root / attachment.path
+    if not physical_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Image file not found on storage disk",
+        )
+
+    media_type = attachment.mime or "image/jpeg"
+    orig_name = (
+        (attachment.metadata_ or {}).get("original_filename")
+        or Path(attachment.path).name
+        or f"{attachment_id}.jpg"
+    )
+    return FileResponse(
+        path=str(physical_path),
+        media_type=media_type,
+        filename=orig_name,
     )

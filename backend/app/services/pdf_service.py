@@ -269,7 +269,7 @@ class PDFReportGenerator:
             textColor=colors.HexColor("#0284C7"),
             spaceAfter=15,
         )
-        elements.append(Paragraph("OMNIMIND MULTIMODAL INTELLIGENCE PLATFORM", brand_style))
+        elements.append(Paragraph("OMNIMIND MULTIMODAL ASSISTANT", brand_style))
         elements.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor("#0284C7")))
         elements.append(Spacer(1, 20))
 
@@ -295,7 +295,7 @@ class PDFReportGenerator:
             spaceAfter=30,
         )
         elements.append(
-            Paragraph("Structured Multimodal Synthesis & Forensic Cross-Asset Analysis", sub_style)
+            Paragraph("Structured Multimodal Synthesis & Cross-Asset Analysis", sub_style)
         )
 
         elements.append(Spacer(1, 50))
@@ -319,7 +319,7 @@ class PDFReportGenerator:
                 Paragraph(str(len(report.image_findings)), self.table_cell_style),
             ],
             [
-                Paragraph("<b>Forensic Observations:</b>", self.table_cell_style),
+                Paragraph("<b>Key Observations:</b>", self.table_cell_style),
                 Paragraph(str(len(report.cross_modal_observations)), self.table_cell_style),
             ],
             [
@@ -363,7 +363,7 @@ class PDFReportGenerator:
                 "4.0",
                 f"Visual & Scene Intelligence ({len(report.image_findings)} assets)",
             ),
-            ("5.0", "Cross-Modal Forensic Observations"),
+            ("5.0", "Cross-Modal Observations"),
             ("6.0", "Conclusions & Strategic Recommendations"),
             ("7.0", "Appendix & System Telemetry"),
         ]
@@ -630,7 +630,7 @@ class PDFReportGenerator:
 
         # 7. Cross-Modal Observations
         if report.cross_modal_observations:
-            elements.append(self._h1("5. Cross-Modal Forensic Observations"))
+            elements.append(self._h1("5. Cross-Modal Observations"))
             for obs in report.cross_modal_observations:
                 elements.append(self._p(obs, is_bullet=True))
             elements.append(Spacer(1, 8))

@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     health,
     images,
     jobs,
+    metrics,
     reports,
     search,
 )
@@ -22,3 +23,4 @@ api_router.include_router(images.router, prefix="/images", tags=["Images"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
 api_router.include_router(search.router, prefix="/search", tags=["Search"])
+api_router.include_router(metrics.router, prefix="/metrics", tags=["Metrics"])

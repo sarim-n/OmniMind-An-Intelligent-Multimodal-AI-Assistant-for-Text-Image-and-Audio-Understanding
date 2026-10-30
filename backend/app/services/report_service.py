@@ -77,7 +77,7 @@ class ReportService:
             "Requirements for the JSON response:\n"
             "1. executive_summary: High-level executive synthesis summarizing key discussions and findings.\n"
             "2. sections: Thematic sections [{heading, body, bullet_points}].\n"
-            "3. cross_modal_observations: Forensic correlations between what was spoken, seen, and asked.\n"
+            "3. cross_modal_observations: Correlations between what was spoken, seen, and asked.\n"
             "4. conclusions: Grounded conclusions derived strictly from the evidence.\n"
             "5. recommendations: Concrete strategic recommendations."
         )
@@ -181,7 +181,7 @@ class ReportService:
             "Executive Overview",
             "Operational Discussion & Decision Logs",
             "Visual Asset Analysis & Scene Evidence",
-            "Forensic Multi-Asset Correlation",
+            "Multi-Asset Correlation",
             "Risk Assessment & Strategic Alignment",
         ]
 
@@ -211,7 +211,7 @@ class ReportService:
         conclusions = [
             f"{multilingual_prefix}All scheduled review items for '{conversation_title}' have been addressed.",
             f"{multilingual_prefix}Operational decisions have been ratified and documented in the persistent vault.",
-            f"{multilingual_prefix}Forensic analysis shows high cross-modal congruence across artifacts.",
+            f"{multilingual_prefix}Detailed analysis shows high cross-modal congruence across artifacts.",
             f"{multilingual_prefix}Action assignments have designated owners and deadlines.",
             f"{multilingual_prefix}Project deliverables remain on track for immediate execution.",
         ][:num_conc]

@@ -1,4 +1,4 @@
-.PHONY: help install run test lint format migrate download-models
+.PHONY: help install run test lint format migrate download-models frontend-install frontend-dev frontend-test frontend-build
 
 PYTHON ?= python
 VENV_DIR ?= backend/.venv
@@ -21,13 +21,17 @@ VENV_ALEMBIC = $(VENV_BIN)/alembic$(EXE)
 
 help:
 	@echo Intelligent Multimodal AI Assistant - Make Targets:
-	@echo   make install         - Install backend and frontend dependencies
-	@echo   make run             - Launch FastAPI backend server on port 8000
-	@echo   make test            - Run pytest test suite
-	@echo   make lint            - Run ruff, black --check, and mypy
-	@echo   make format          - Run ruff --fix and black auto-formatters
-	@echo   make migrate         - Execute Alembic database migrations
-	@echo   make download-models - Pre-download Hugging Face model weights for configured PROFILE
+	@echo   make install          - Install backend and frontend dependencies
+	@echo   make run              - Launch FastAPI backend server on port 8000
+	@echo   make test             - Run pytest test suite
+	@echo   make lint             - Run ruff, black --check, and mypy
+	@echo   make format           - Run ruff --fix and black auto-formatters
+	@echo   make migrate          - Execute Alembic database migrations
+	@echo   make download-models  - Pre-download Hugging Face model weights for configured PROFILE
+	@echo   make frontend-install - Install frontend npm packages
+	@echo   make frontend-dev     - Launch Vite frontend development server
+	@echo   make frontend-test    - Run Vitest frontend test suite
+	@echo   make frontend-build   - Compile TypeScript and build production bundle
 
 download-models:
 	@echo Downloading model weights for configured PROFILE...
@@ -67,3 +71,20 @@ format:
 migrate:
 	@echo Running database migrations...
 	$(VENV_ALEMBIC) -c backend/alembic.ini upgrade head
+
+frontend-install:
+	@echo Installing frontend dependencies...
+	cd frontend && npm install
+
+frontend-dev:
+	@echo Launching frontend Vite development server...
+	cd frontend && npm run dev
+
+frontend-test:
+	@echo Running frontend Vitest test suite...
+	cd frontend && npm test
+
+frontend-build:
+	@echo Building production frontend bundle...
+	cd frontend && npm run build
+
