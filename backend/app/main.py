@@ -1,0 +1,77 @@
+"""Main FastAPI application entry point."""
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.v1.api import api_router
+from app.core.config import settings
+from app.core.logging import get_logger, setup_logging
+from app.schemas.health import HealthResponse
+
+# Initialize structured logging
+setup_logging()
+logger = get_logger("app.main")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan context manager for startup and shutdown tasks."""
+    logger.info(
+        "Application startup",
+        profile=settings.PROFILE,
+        mock_models=settings.MOCK_MODELS,
+        version=settings.VERSION,
+        environment=settings.ENVIRONMENT,
+    )
+    yield
+    logger.info("Application shutdown")
+
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="Backend API for the Intelligent Multimodal AI Assistant",
+    lifespan=lifespan,
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Health check",
+    description="Returns root health status, profile, mock status, and configured models.",
+)
+async def health_check() -> HealthResponse:
+    """Root health check endpoint."""
+    return HealthResponse(
+        status="ok",
+        profile=settings.PROFILE,
+        mock_models=settings.MOCK_MODELS,
+        version=settings.VERSION,
+        timestamp=datetime.now(UTC).isoformat(),
+        models=settings.active_models,
+    )
+
+
+# Include API v1 router
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

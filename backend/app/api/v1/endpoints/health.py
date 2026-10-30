@@ -1,0 +1,28 @@
+"""Health check endpoint."""
+
+from datetime import UTC, datetime
+
+from fastapi import APIRouter
+
+from app.core.config import settings
+from app.schemas.health import HealthResponse
+
+router = APIRouter()
+
+
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Health check",
+    description="Returns the health status, hardware profile, model configuration, and version.",
+)
+async def health_check() -> HealthResponse:
+    """Check system health status and active configuration."""
+    return HealthResponse(
+        status="ok",
+        profile=settings.PROFILE,
+        mock_models=settings.MOCK_MODELS,
+        version=settings.VERSION,
+        timestamp=datetime.now(UTC).isoformat(),
+        models=settings.active_models,
+    )
