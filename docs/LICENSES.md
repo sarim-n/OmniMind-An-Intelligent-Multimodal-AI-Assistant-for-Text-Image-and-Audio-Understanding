@@ -59,6 +59,8 @@ This repository adheres strictly to the **Free-Only and Permissive Open-Source c
 | **bitsandbytes** | Library (4-bit / 8-bit Quantization) | MIT | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) |
 | **pynvml** | Library (NVIDIA Management) | BSD-3-Clause | [gpuopenanalytics/pynvml](https://github.com/gpuopenanalytics/pynvml) |
 | **llama-cpp-python** | Library (CPU GGUF Inference) | MIT | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) |
+| **PyAV (av)** | Library (Audio/Video Demuxing & Decoding) | BSD-2-Clause | [PyAV-Org/PyAV](https://github.com/PyAV-Org/PyAV) |
+| **CTranslate2** | Library (Fast C++ Inference Engine) | MIT | [OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2) |
 | **Pytest / Pytest-asyncio** | Library (Testing) | MIT | [pytest-dev/pytest](https://github.com/pytest-dev/pytest) |
 | **HTTPX** | Library (Async HTTP Client) | BSD-3-Clause | [encode/httpx](https://github.com/encode/httpx) |
 | **Ruff** | Tool (Linter / Formatter) | MIT / Apache-2.0 | [astral-sh/ruff](https://github.com/astral-sh/ruff) |

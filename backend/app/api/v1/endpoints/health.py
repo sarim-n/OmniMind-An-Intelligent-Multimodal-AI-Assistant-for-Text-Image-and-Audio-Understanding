@@ -25,4 +25,11 @@ async def health_check() -> HealthResponse:
         version=settings.VERSION,
         timestamp=datetime.now(UTC).isoformat(),
         models=settings.active_models,
+        asr_settings={
+            "model": settings.effective_asr_model,
+            "compute_type": settings.ASR_COMPUTE_TYPE,
+            "beam_size": settings.ASR_BEAM_SIZE,
+            "vad_filter": settings.ASR_VAD_FILTER,
+            "max_duration_sec": settings.MAX_AUDIO_DURATION_SEC,
+        },
     )

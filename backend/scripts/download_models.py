@@ -34,6 +34,17 @@ def download_active_models() -> None:
         except Exception as e:
             print(f"[!] Warning: failed downloading {model_id}: {e}")
 
+    # Download ASR model via faster-whisper
+    asr_model = settings.effective_asr_model
+    print(f"\n[+] Downloading ASR (faster-whisper): {asr_model} ...")
+    try:
+        from faster_whisper import download_model
+
+        download_model(asr_model)
+        print(f"[✓] faster-whisper '{asr_model}' downloaded successfully.")
+    except Exception as e:
+        print(f"[!] Warning: failed downloading ASR model {asr_model}: {e}")
+
     print("\nModel pre-download complete!")
 
 

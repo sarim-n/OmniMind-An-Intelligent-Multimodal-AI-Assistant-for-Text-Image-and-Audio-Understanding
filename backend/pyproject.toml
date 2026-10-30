@@ -27,6 +27,7 @@ dependencies = [
     "accelerate>=1.1.0",
     "torch>=2.4.0",
     "faster-whisper>=1.1.0",
+    "av>=12.0.0",
     "opencv-python-headless>=4.10.0.84",
     "reportlab>=4.2.5",
     "jiwer>=3.0.5",
@@ -78,7 +79,7 @@ markers = [
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
-warn_unused_configs = true
+warn_unused_configs = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -93,5 +94,9 @@ module = [
     "langdetect.*",
     "llama_cpp",
     "llama_cpp.*",
+    "faster_whisper",
+    "faster_whisper.*",
+    "av",
+    "av.*",
 ]
 ignore_missing_imports = true

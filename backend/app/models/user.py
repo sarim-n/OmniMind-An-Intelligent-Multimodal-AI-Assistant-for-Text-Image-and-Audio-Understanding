@@ -12,6 +12,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from app.models.attachment import Attachment
     from app.models.conversation import Conversation
+    from app.models.job import Job
 
 
 def generate_uuid() -> str:
@@ -40,4 +41,7 @@ class User(Base):
     )
     attachments: Mapped[list["Attachment"]] = relationship(
         "Attachment", back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+    jobs: Mapped[list["Job"]] = relationship(
+        "Job", back_populates="user", cascade="all, delete-orphan", passive_deletes=True
     )

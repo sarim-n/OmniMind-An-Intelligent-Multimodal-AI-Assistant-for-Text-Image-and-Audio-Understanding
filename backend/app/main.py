@@ -17,6 +17,28 @@ setup_logging()
 logger = get_logger("app.main")
 
 
+def mark_orphan_jobs_failed() -> int:
+    """Mark any jobs left in 'running' state on server startup as failed."""
+    import app.db.session
+    from app.models.job import Job
+
+    try:
+        with app.db.session.SessionLocal() as db:
+            orphan_jobs = db.query(Job).filter(Job.status == "running").all()
+            count = len(orphan_jobs)
+            for j in orphan_jobs:
+                j.status = "failed"
+                j.error = "Job interrupted by server shutdown/restart"
+                j.updated_at = datetime.now(UTC)
+            if count > 0:
+                db.commit()
+                logger.info("Marked orphan jobs as failed", count=count)
+            return count
+    except Exception as e:
+        logger.warning("Failed to check orphan jobs on startup", error=str(e))
+        return 0
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager for startup and shutdown tasks."""
@@ -27,6 +49,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         version=settings.VERSION,
         environment=settings.ENVIRONMENT,
     )
+    mark_orphan_jobs_failed()
     yield
     logger.info("Application shutdown")
 
@@ -64,6 +87,13 @@ async def health_check() -> HealthResponse:
         version=settings.VERSION,
         timestamp=datetime.now(UTC).isoformat(),
         models=settings.active_models,
+        asr_settings={
+            "model": settings.effective_asr_model,
+            "compute_type": settings.ASR_COMPUTE_TYPE,
+            "beam_size": settings.ASR_BEAM_SIZE,
+            "vad_filter": settings.ASR_VAD_FILTER,
+            "max_duration_sec": settings.MAX_AUDIO_DURATION_SEC,
+        },
     )
 
 

@@ -1,10 +1,13 @@
 """Structured JSON logging configuration using structlog."""
 
+from __future__ import annotations
+
 import logging
 import sys
-from typing import Any
+from typing import Any, cast
 
 import structlog
+import structlog.stdlib
 
 
 def setup_logging() -> None:
@@ -54,4 +57,4 @@ def setup_logging() -> None:
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """Obtain a structured logger instance."""
-    return structlog.get_logger(name)
+    return cast("structlog.stdlib.BoundLogger", structlog.get_logger(name))

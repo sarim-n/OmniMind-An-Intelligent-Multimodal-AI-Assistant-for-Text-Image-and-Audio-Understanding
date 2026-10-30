@@ -14,3 +14,6 @@ class HealthResponse(BaseModel):
     version: str = Field(..., description="Application version")
     timestamp: str = Field(..., description="UTC ISO timestamp of health check")
     models: dict[str, str] = Field(..., description="Active model identifiers for current profile")
+    asr_settings: dict[str, str | int | bool] = Field(
+        default_factory=dict, description="Active ASR configuration parameters"
+    )
