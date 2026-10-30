@@ -29,7 +29,10 @@ class Message(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     conversation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("conversations.id", ondelete="CASCADE"), index=True, nullable=False
+        String(36),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False)  # user | assistant | system
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -43,5 +46,8 @@ class Message(Base):
     # Relationships
     conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
     attachments: Mapped[list["Attachment"]] = relationship(
-        "Attachment", back_populates="message", cascade="all, delete-orphan", passive_deletes=True
+        "Attachment",
+        back_populates="message",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

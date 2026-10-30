@@ -18,8 +18,14 @@ class HealthResponse(BaseModel):
         default_factory=dict, description="Active ASR configuration parameters"
     )
     vision_settings: dict[str, str | int | float | bool] = Field(
-        default_factory=dict, description="Active Vision and VLM configuration parameters"
+        default_factory=dict,
+        description="Active Vision and VLM configuration parameters",
     )
     orchestration_settings: dict[str, str | int | float | bool] = Field(
-        default_factory=dict, description="Active Multimodal Orchestration configuration parameters"
+        default_factory=dict,
+        description="Active Multimodal Orchestration configuration parameters",
+    )
+    vault_settings: dict[str, str | int | float | bool] = Field(
+        default_factory=dict,
+        description="Active Knowledge Vault and Search configuration parameters",
     )

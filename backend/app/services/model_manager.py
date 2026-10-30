@@ -26,6 +26,7 @@ MODEL_SIZE_ESTIMATES_MB: dict[str, dict[str, int]] = {
         "asr": 300,
         "detector": 200,
         "embedder": 250,
+        "image_embedder": 400,
     },
     "gpu_low": {
         "llm": 2000,
@@ -33,6 +34,7 @@ MODEL_SIZE_ESTIMATES_MB: dict[str, dict[str, int]] = {
         "asr": 500,
         "detector": 250,
         "embedder": 1000,
+        "image_embedder": 500,
     },
     "gpu_mid": {
         "llm": 4500,
@@ -40,6 +42,7 @@ MODEL_SIZE_ESTIMATES_MB: dict[str, dict[str, int]] = {
         "asr": 1500,
         "detector": 400,
         "embedder": 1500,
+        "image_embedder": 600,
     },
     "gpu_high": {
         "llm": 6000,
@@ -47,6 +50,7 @@ MODEL_SIZE_ESTIMATES_MB: dict[str, dict[str, int]] = {
         "asr": 2000,
         "detector": 500,
         "embedder": 1500,
+        "image_embedder": 600,
     },
 }
 

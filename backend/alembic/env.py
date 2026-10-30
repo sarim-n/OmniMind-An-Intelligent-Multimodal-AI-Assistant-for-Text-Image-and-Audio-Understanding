@@ -1,7 +1,9 @@
 import sys
 from logging.config import fileConfig
 from pathlib import Path
+
 from sqlalchemy import engine_from_config, pool
+
 from alembic import context
 
 # Ensure app directory is in Python path
@@ -9,10 +11,10 @@ backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
+import app.models  # noqa: F401 (load all models for autogenerate)
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import get_resolved_database_url
-import app.models  # noqa: F401 (load all models for autogenerate)
 
 # Alembic Config object
 config = context.config
@@ -24,14 +26,18 @@ if config.config_file_name is not None:
 # Set database URL dynamically from application settings if not already provided or is template dummy
 current_url = config.get_main_option("sqlalchemy.url")
 if not current_url or "driver://user:pass" in current_url:
-    config.set_main_option("sqlalchemy.url", get_resolved_database_url(settings.DATABASE_URL))
+    config.set_main_option(
+        "sqlalchemy.url", get_resolved_database_url(settings.DATABASE_URL)
+    )
 
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    url = config.get_main_option("sqlalchemy.url") or get_resolved_database_url(settings.DATABASE_URL)
+    url = config.get_main_option("sqlalchemy.url") or get_resolved_database_url(
+        settings.DATABASE_URL
+    )
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -46,7 +52,9 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    url = config.get_main_option("sqlalchemy.url") or get_resolved_database_url(settings.DATABASE_URL)
+    url = config.get_main_option("sqlalchemy.url") or get_resolved_database_url(
+        settings.DATABASE_URL
+    )
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = url
 

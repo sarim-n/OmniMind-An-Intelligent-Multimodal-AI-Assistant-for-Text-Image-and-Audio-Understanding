@@ -251,7 +251,8 @@ class AudioService:
                 logger.info("faster-whisper model loaded successfully", device=self.device)
             except Exception as e:
                 logger.error(
-                    "Failed to load faster-whisper model, falling back to MockASR", error=str(e)
+                    "Failed to load faster-whisper model, falling back to MockASR",
+                    error=str(e),
                 )
                 self.model = MockASR()
                 self._loaded = True

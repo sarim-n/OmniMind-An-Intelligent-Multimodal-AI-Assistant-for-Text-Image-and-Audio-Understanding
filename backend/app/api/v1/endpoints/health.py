@@ -46,4 +46,11 @@ async def health_check() -> HealthResponse:
             "max_files_per_message": settings.MAX_FILES_PER_MESSAGE,
             "max_total_audio_duration_per_message_sec": settings.MAX_TOTAL_AUDIO_DURATION_PER_MESSAGE_SEC,
         },
+        vault_settings={
+            "vault_chroma_path": str(settings.VAULT_CHROMA_PATH),
+            "search_default_top_k": settings.SEARCH_DEFAULT_TOP_K,
+            "search_rerank_top_k": settings.SEARCH_RERANK_TOP_K,
+            "meeting_min_duration_sec": settings.MEETING_MIN_DURATION_SEC,
+            "hf_token_configured": bool(settings.HF_TOKEN),
+        },
     )

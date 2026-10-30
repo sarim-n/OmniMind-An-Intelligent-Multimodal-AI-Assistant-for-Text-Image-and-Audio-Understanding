@@ -68,7 +68,8 @@ def resolve_safe_path(relative_or_absolute_path: str | Path) -> Path:
         resolved.relative_to(storage_root)
     except ValueError as exc:
         logger.warning(
-            "Path traversal attempt detected", attempted_path=str(relative_or_absolute_path)
+            "Path traversal attempt detected",
+            attempted_path=str(relative_or_absolute_path),
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -90,6 +91,49 @@ def sanitize_filename(filename: str | None) -> str:
     # Strip leading/trailing dots or spaces that could trigger traversal or hiding
     cleaned = cleaned.strip(". ")
     return cleaned or f"upload_{uuid.uuid4().hex[:8]}"
+
+
+def validate_media_upload(
+    filename: str,
+    content: bytes,
+    allowed_type: Literal["image", "audio"],
+) -> None:
+    """Validate uploaded media file size, extension, and sniffed MIME type."""
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty",
+        )
+    if len(content) > settings.MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"File size {len(content)} exceeds limit of {settings.MAX_UPLOAD_SIZE_BYTES} bytes",
+        )
+
+    safe_filename = sanitize_filename(filename)
+    ext = Path(safe_filename).suffix.lower()
+
+    allowed_extensions = (
+        ALLOWED_IMAGE_EXTENSIONS if allowed_type == "image" else ALLOWED_AUDIO_EXTENSIONS
+    )
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Extension '{ext}' not allowed for {allowed_type} uploads. Allowed: {sorted(allowed_extensions)}",
+        )
+
+    sniffed = filetype.guess(content)
+    sniffed_mime = sniffed.mime if sniffed else None
+
+    if not sniffed_mime and ext == ".webm" and content.startswith(b"\x1a\x45\xdf\xa3"):
+        sniffed_mime = "audio/webm"
+
+    allowed_mimes = ALLOWED_IMAGE_MIMES if allowed_type == "image" else ALLOWED_AUDIO_MIMES
+    if not sniffed_mime or sniffed_mime not in allowed_mimes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"MIME verification failed. Detected '{sniffed_mime}', expected a valid {allowed_type} format.",
+        )
 
 
 def detect_audio_duration(file_path: Path) -> float | None:

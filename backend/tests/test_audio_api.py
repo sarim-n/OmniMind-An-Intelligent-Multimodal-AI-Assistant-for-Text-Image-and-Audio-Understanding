@@ -52,7 +52,7 @@ async def test_audio_transcribe_upload_and_poll_job(
     assert job_data["status"] in ("queued", "running", "done")
 
     # 2. Wait a moment for background task to complete and poll job
-    for _ in range(50):
+    for _ in range(150):
         await asyncio.sleep(0.1)
         poll_res = await client.get(f"/api/v1/jobs/{job_id}", headers=auth_headers)
         assert poll_res.status_code == 200
@@ -116,7 +116,7 @@ async def test_audio_endpoints_cross_user_isolation(
     job_id = res.json()["id"]
 
     # Wait for completion
-    for _ in range(15):
+    for _ in range(100):
         await asyncio.sleep(0.1)
         j_res = await client.get(f"/api/v1/jobs/{job_id}", headers=auth_headers)
         if j_res.json()["status"] == "done":

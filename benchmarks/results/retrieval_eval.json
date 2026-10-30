@@ -1,0 +1,416 @@
+{
+  "mock_mode": true,
+  "profile": "cpu",
+  "summary": {
+    "text_to_text": {
+      "query_count": 12.0,
+      "recall_at_1": 1.0,
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "mrr": 1.0
+    },
+    "text_to_image": {
+      "query_count": 12.0,
+      "recall_at_1": 1.0,
+      "recall_at_5": 1.0,
+      "recall_at_10": 1.0,
+      "mrr": 1.0
+    },
+    "cross_lingual": {
+      "query_count": 14.0,
+      "recall_at_1": 0.1429,
+      "recall_at_5": 0.1429,
+      "recall_at_10": 0.2143,
+      "mrr": 0.1548
+    },
+    "overall": {
+      "query_count": 38.0,
+      "recall_at_1": 0.6842,
+      "recall_at_5": 0.6842,
+      "recall_at_10": 0.7105,
+      "mrr": 0.6886
+    }
+  },
+  "details": [
+    {
+      "query": "recurring subscription revenue growth quarterly",
+      "target_id": "item_en_01",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "quarterly financial report 24 percent",
+      "target_id": "item_en_01",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "kubernetes cluster upgrade schedule",
+      "target_id": "item_en_02",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "marketing budget fifty thousand dollars Q3",
+      "target_id": "item_en_03",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "Alice approved marketing budget",
+      "target_id": "item_en_03",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "unauthorized API key rotation security postmortem",
+      "target_id": "item_en_04",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "mobile biometric login offline sync release",
+      "target_id": "item_en_05",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "database compound index user_id created_at",
+      "target_id": "item_en_06",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "new regional development center Bangalore",
+      "target_id": "item_en_07",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "user satisfaction updated dashboard UI 92%",
+      "target_id": "item_en_08",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "vendor master service agreement liability clauses",
+      "target_id": "item_en_09",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "server maintenance zero downtime production",
+      "target_id": "item_en_10",
+      "category": "text_to_text",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "sales growth bar chart diagram",
+      "target_id": "item_img_01",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "quarterly sales across North America",
+      "target_id": "item_img_01",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "red sports car skyscraper",
+      "target_id": "item_img_02",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "sports car modern glass building",
+      "target_id": "item_img_02",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "microservices architecture diagram ChromaDB",
+      "target_id": "item_img_03",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "whiteboard user journey flowchart wireframes",
+      "target_id": "item_img_04",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "dark mode analytics dashboard latency throughput",
+      "target_id": "item_img_05",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "machine learning pipeline infographic vector retrieval",
+      "target_id": "item_img_06",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "team meeting conference room wooden table",
+      "target_id": "item_img_07",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "robotic arm mechanical assembly schematic",
+      "target_id": "item_img_08",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "CPU GPU memory utilization chart stress test",
+      "target_id": "item_img_09",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "eco-friendly product packaging mockup branding",
+      "target_id": "item_img_10",
+      "category": "text_to_image",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "annual budget financial allocation meeting",
+      "target_id": "item_xl_01",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "वित्तीय आवंटन बजट",
+      "target_id": "item_xl_01",
+      "category": "cross_lingual",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "new software release user security bug fixes",
+      "target_id": "item_xl_02",
+      "category": "cross_lingual",
+      "rank": 6,
+      "r1": 0,
+      "r5": 0,
+      "r10": 1,
+      "mrr": 0.1667
+    },
+    {
+      "query": "மென்பொருள் பாதுகாப்பு",
+      "target_id": "item_xl_02",
+      "category": "cross_lingual",
+      "rank": 1,
+      "r1": 1,
+      "r5": 1,
+      "r10": 1,
+      "mrr": 1.0
+    },
+    {
+      "query": "कृत्रिम बुद्धिमत्ता बहुभाषी खोज",
+      "target_id": "item_xl_03",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "செயற்கை நுண்ணறிவு பலமொழி தேடல்",
+      "target_id": "item_xl_03",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "mobile application beta testing timeline next week",
+      "target_id": "item_xl_04",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "third quarter sales target successfully achieved",
+      "target_id": "item_xl_05",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "सौर ऊर्जा पैनल स्थापना मुख्यालय",
+      "target_id": "item_xl_06",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "சூரிய மின்சக்தி திட்டம் தலைமையகம்",
+      "target_id": "item_xl_06",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "सौर ऊर्जा ग्रिड बैटरी आरेख",
+      "target_id": "item_xl_07",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "clinical research treatment successful outcomes report",
+      "target_id": "item_xl_08",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "data center security biometric verification surveillance",
+      "target_id": "item_xl_09",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    },
+    {
+      "query": "आपूर्ति श्रृंखला रसद सूची स्वचालन",
+      "target_id": "item_xl_10",
+      "category": "cross_lingual",
+      "rank": "Not Found",
+      "r1": 0,
+      "r5": 0,
+      "r10": 0,
+      "mrr": 0.0
+    }
+  ]
+}

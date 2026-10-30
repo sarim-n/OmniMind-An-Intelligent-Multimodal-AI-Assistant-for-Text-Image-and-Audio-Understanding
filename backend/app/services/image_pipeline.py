@@ -40,7 +40,9 @@ async def run_image_pipeline(
     with track("vision", "pipeline") as tracker:
         # 1. Preprocessing & Quality Verification
         logger.info(
-            "Preprocessing image for analysis", attachment_id=attachment_id, user_id=user_id
+            "Preprocessing image for analysis",
+            attachment_id=attachment_id,
+            user_id=user_id,
         )
         preprocessed = await asyncio.to_thread(
             preprocess_image,

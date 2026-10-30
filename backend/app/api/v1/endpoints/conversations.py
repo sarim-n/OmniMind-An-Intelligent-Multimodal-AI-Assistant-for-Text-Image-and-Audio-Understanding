@@ -5,7 +5,16 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -203,8 +212,11 @@ def delete_conversation(
         for att in attachments:
             delete_file(att.path)
 
-    # 2. Purge ChromaDB long-term memory
+    # 2. Purge ChromaDB long-term memory and Knowledge Vault entries
     get_memory_service().delete_conversation_memory(conversation_id)
+    from app.services.search_service import get_search_service
+
+    get_search_service().delete_conversation_entries(conversation_id)
 
     # 3. Delete conversation (triggers DB cascade delete of messages)
     db.delete(conv)
@@ -264,7 +276,10 @@ def list_messages(
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "content": {"type": "string", "description": "Text prompt or question"},
+                            "content": {
+                                "type": "string",
+                                "description": "Text prompt or question",
+                            },
                             "language": {
                                 "type": "string",
                                 "description": "Optional ISO language code",

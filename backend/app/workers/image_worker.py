@@ -48,6 +48,21 @@ async def execute_image_analysis_job(
             progress=1.0,
             result=result_payload,
         )
+
+        # Index image caption, OCR, and SigLIP visual embedding into Knowledge Vault
+        try:
+            from app.services.search_service import get_search_service
+
+            get_search_service().index_image_analysis(
+                user_id=user_id,
+                conversation_id=None,
+                attachment_id=attachment_id,
+                analysis_data=analysis_result,
+                image_path=file_path,
+            )
+        except Exception as idx_err:
+            logger.warning("Knowledge Vault indexing failed in image worker", error=str(idx_err))
+
         logger.info(
             "Successfully completed image analysis job",
             job_id=job_id,

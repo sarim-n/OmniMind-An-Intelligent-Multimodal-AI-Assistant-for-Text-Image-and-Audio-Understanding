@@ -45,6 +45,76 @@ class AudioInsights(BaseModel):
     )
 
 
+class MeetingActionItem(BaseModel):
+    """Action item derived specifically from meeting audio with provenance timestamp."""
+
+    owner: str = Field(default="Unassigned", description="Task owner or responsible party")
+    task: str = Field(..., description="Actionable deliverable")
+    deadline: str | None = Field(default=None, description="Target completion timeframe")
+    source_timestamp: str | None = Field(
+        default=None, description="Audio timestamp reference (e.g. 01:23 or 83.5s)"
+    )
+
+
+class TopicTimelineItem(BaseModel):
+    """Segment within a chronological topic timeline."""
+
+    topic: str = Field(..., description="Topic label")
+    start: float = Field(..., ge=0.0, description="Start timestamp in seconds")
+    end: float = Field(..., ge=0.0, description="End timestamp in seconds")
+    summary: str = Field(..., description="Overview of discussion in this segment")
+
+
+class TalkTimeItem(BaseModel):
+    """Speaker or segment speech time distribution for visual charts."""
+
+    speaker: str = Field(..., description="Speaker label or channel identifier")
+    duration_sec: float = Field(..., ge=0.0, description="Total speech duration in seconds")
+    percentage: float = Field(..., ge=0.0, le=100.0, description="Percentage of total talk time")
+
+
+class TopicTimelineChartItem(BaseModel):
+    """Simplified timeline entry tailored for chart visualizations."""
+
+    topic: str
+    start: float
+    end: float
+
+
+class MeetingInsights(BaseModel):
+    """Comprehensive analytical meeting insights structured for executive review and charts."""
+
+    inferred_agenda: list[str] = Field(
+        default_factory=list, description="Inferred meeting agenda items"
+    )
+    decisions: list[str] = Field(
+        default_factory=list, description="Decisions and consensus reached"
+    )
+    action_items: list[MeetingActionItem] = Field(
+        default_factory=list, description="Table of assigned action items"
+    )
+    unresolved_questions: list[str] = Field(
+        default_factory=list, description="Unresolved topics or parking lot items"
+    )
+    per_topic_timeline: list[TopicTimelineItem] = Field(
+        default_factory=list, description="Ordered chronological topic segments"
+    )
+    executive_summary: str = Field(
+        ..., description="Cohesive 5-line executive summary of meeting outcomes"
+    )
+    talk_time: list[TalkTimeItem] = Field(
+        default_factory=list,
+        description="Talk-time dataset for speaker distribution charts",
+    )
+    topic_timeline: list[TopicTimelineChartItem] = Field(
+        default_factory=list,
+        description="Topic-timeline dataset for progression charts",
+    )
+    errors: list[str] | None = Field(
+        default=None, description="Diagnostic messages or warnings if partial"
+    )
+
+
 class AudioTranscribeRequest(BaseModel):
     """Payload to initiate an audio transcription job."""
 

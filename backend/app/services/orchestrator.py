@@ -44,7 +44,12 @@ def format_sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def parse_citations(text: str, attachments_map: dict[str, Attachment]) -> list[dict[str, Any]]:
+def parse_citations(
+    text: str,
+    attachments_map: dict[str, Attachment],
+    db: Session | None = None,
+    user_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Parse inline citations [audio:<file> mm:ss] and [image:<file>] matching attachments."""
     items: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -60,6 +65,17 @@ def parse_citations(text: str, attachments_map: dict[str, Attachment]) -> list[d
         seen.add(key)
 
         att = attachments_map.get(raw_file.lower())
+        if not att and db and user_id:
+            user_atts = db.query(Attachment).filter(Attachment.user_id == user_id).all()
+            for u in user_atts:
+                u_orig = u.metadata_.get("original_filename", Path(u.path).name)
+                if (
+                    u_orig.lower() == raw_file.lower()
+                    or Path(u.path).name.lower() == raw_file.lower()
+                ):
+                    att = u
+                    break
+
         items.append(
             {
                 "type": "audio",
@@ -79,6 +95,17 @@ def parse_citations(text: str, attachments_map: dict[str, Attachment]) -> list[d
         seen.add(key)
 
         att = attachments_map.get(raw_file.lower())
+        if not att and db and user_id:
+            user_atts = db.query(Attachment).filter(Attachment.user_id == user_id).all()
+            for u in user_atts:
+                u_orig = u.metadata_.get("original_filename", Path(u.path).name)
+                if (
+                    u_orig.lower() == raw_file.lower()
+                    or Path(u.path).name.lower() == raw_file.lower()
+                ):
+                    att = u
+                    break
+
         items.append(
             {
                 "type": "image",
@@ -136,7 +163,8 @@ async def orchestrate_message(
         # 1. INGESTION STAGE: Validate, persist media files, create user message row
         # -------------------------------------------------------------------------
         yield format_sse(
-            "status", {"stage": "ingest", "message": "Validating and storing attachments"}
+            "status",
+            {"stage": "ingest", "message": "Validating and storing attachments"},
         )
 
         saved_attachments: list[Attachment] = []
@@ -164,7 +192,11 @@ async def orchestrate_message(
                 err_msg = str(e.detail if isinstance(e, HTTPException) else e)
                 modality_errors.append(f"Image '{orig_name}' failed to process: {err_msg}")
                 yield format_sse(
-                    "error", {"stage": "image", "message": f"Image processing failed: {err_msg}"}
+                    "error",
+                    {
+                        "stage": "image",
+                        "message": f"Image processing failed: {err_msg}",
+                    },
                 )
 
         for aud_file in audio_files:
@@ -193,7 +225,11 @@ async def orchestrate_message(
                 err_msg = str(e.detail if isinstance(e, HTTPException) else e)
                 modality_errors.append(f"Audio '{orig_name}' failed to process: {err_msg}")
                 yield format_sse(
-                    "error", {"stage": "audio", "message": f"Audio processing failed: {err_msg}"}
+                    "error",
+                    {
+                        "stage": "audio",
+                        "message": f"Audio processing failed: {err_msg}",
+                    },
                 )
 
         if total_audio_duration > settings.MAX_TOTAL_AUDIO_DURATION_PER_MESSAGE_SEC:
@@ -226,10 +262,20 @@ async def orchestrate_message(
         db.commit()
         db.refresh(user_msg)
 
-        # Index user message text in ChromaDB if non-empty
+        # Index user message text in ChromaDB and Knowledge Vault if non-empty
         memory_service = get_memory_service()
         if user_text:
             memory_service.add_message_memory(conversation_id, user_msg.id, user_text, "user")
+            from app.services.search_service import get_search_service
+
+            get_search_service().index_message(
+                user.id,
+                conversation_id,
+                user_msg.id,
+                user_text,
+                "user",
+                user_msg.language or "en",
+            )
 
         # -------------------------------------------------------------------------
         # 2. PROCESSING STAGE: Process audio (ASR) and images (CV pipeline)
@@ -272,7 +318,8 @@ async def orchestrate_message(
                 continue
 
             yield format_sse(
-                "status", {"stage": "audio", "message": f"Transcribing audio {orig_name}"}
+                "status",
+                {"stage": "audio", "message": f"Transcribing audio {orig_name}"},
             )
             try:
                 if "corrupt" in orig_name.lower():
@@ -299,8 +346,52 @@ async def orchestrate_message(
                     text=result.text,
                     segments=[s.model_dump() for s in result.segments],
                 )
+
+                is_meeting_ask = bool(
+                    user_text
+                    and any(
+                        k in user_text.lower()
+                        for k in (
+                            "meeting",
+                            "agenda",
+                            "action item",
+                            "decision",
+                            "minutes",
+                            "summarise",
+                            "summarize",
+                        )
+                    )
+                )
+                if result.duration >= settings.MEETING_MIN_DURATION_SEC or is_meeting_ask:
+                    try:
+                        from app.services.meeting_insights import (
+                            get_meeting_insights_service,
+                        )
+
+                        meeting_svc = get_meeting_insights_service()
+                        mi = meeting_svc.generate_meeting_insights(
+                            transcript_text=result.text,
+                            segments=[s.model_dump() for s in result.segments],
+                            total_duration=result.duration,
+                            audio_path=phys_path,
+                            output_language=result.language,
+                        )
+                        transcript_rec.insights = mi.model_dump()
+                    except Exception as mi_err:
+                        logger.warning(
+                            "Auto meeting insights generation failed in orchestrator",
+                            error=str(mi_err),
+                        )
+
                 db.add(transcript_rec)
                 db.commit()
+
+                # Index transcript and meeting items into Knowledge Vault
+                from app.services.search_service import get_search_service
+
+                get_search_service().index_transcript(
+                    user.id, conversation_id, att.id, transcript_rec
+                )
 
                 # Index transcript segments into ChromaDB for follow-ups
                 for idx, seg in enumerate(result.segments):
@@ -335,7 +426,8 @@ async def orchestrate_message(
                 logger.error("Audio processing failed", attachment_id=att.id, error=str(e))
                 modality_errors.append(f"Audio '{orig_name}' failed to process: {e!s}")
                 yield format_sse(
-                    "error", {"stage": "audio", "message": f"Audio processing failed: {e!s}"}
+                    "error",
+                    {"stage": "audio", "message": f"Audio processing failed: {e!s}"},
                 )
 
         # Process Image Attachments
@@ -412,6 +504,17 @@ async def orchestrate_message(
                         "warnings": analysis.warnings,
                     },
                 )
+
+                # Index image caption, OCR, and SigLIP visual embedding into Knowledge Vault
+                from app.services.search_service import get_search_service
+
+                get_search_service().index_image_analysis(
+                    user_id=user.id,
+                    conversation_id=conversation_id,
+                    attachment_id=att.id,
+                    analysis_data=analysis,
+                    image_path=phys_path,
+                )
                 obj_summary = ", ".join(f"{k}:{v}" for k, v in analysis.counts.items())
                 image_contexts.append(
                     f'<<<IMAGE file="{orig_name}" objects="{obj_summary}">>>\n'
@@ -423,7 +526,8 @@ async def orchestrate_message(
                 logger.error("Image processing failed", attachment_id=att.id, error=str(e))
                 modality_errors.append(f"Image '{orig_name}' failed to process: {e!s}")
                 yield format_sse(
-                    "error", {"stage": "image", "message": f"Image processing failed: {e!s}"}
+                    "error",
+                    {"stage": "image", "message": f"Image processing failed: {e!s}"},
                 )
 
         # -------------------------------------------------------------------------
@@ -495,7 +599,10 @@ async def orchestrate_message(
                 target_image_att = (
                     db.query(Attachment)
                     .join(Message, Attachment.message_id == Message.id)
-                    .filter(Message.conversation_id == conversation_id, Attachment.type == "image")
+                    .filter(
+                        Message.conversation_id == conversation_id,
+                        Attachment.type == "image",
+                    )
                     .order_by(Attachment.created_at.desc())
                     .first()
                 )
@@ -557,6 +664,14 @@ async def orchestrate_message(
                 f"You MUST clearly inform the user in your answer about what could not be processed and why."
             )
 
+        if intent == "search":
+            system_prompt += (
+                "\n\nKNOWLEDGE VAULT SEARCH MANDATE:\n"
+                "The user is searching their Knowledge Vault. Use the records in <<<KNOWLEDGE_VAULT_...>>> blocks "
+                "to answer their search inquiry directly and cite your sources inline as [audio:<file> mm:ss] and [image:<file>]. "
+                "If no records were found or relevant, clearly state that no matching records were found in the Knowledge Vault."
+            )
+
         # Assemble prompt turns
         llm_messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
 
@@ -585,6 +700,54 @@ async def orchestrate_message(
                 + "\n<<<RETRIEVED_MEMORY>>>"
             )
 
+        # Search Knowledge Vault when intent is search
+        if intent == "search" and user_text:
+            yield format_sse(
+                "status",
+                {"stage": "vault_search", "message": "Searching Knowledge Vault"},
+            )
+            try:
+                from app.services.search_service import get_search_service
+
+                search_svc = get_search_service()
+                vault_results = search_svc.search_vault(query=user_text, user_id=user.id, top_k=5)
+                for res in vault_results:
+                    res_att: Attachment | None = None
+                    if res.attachment_id:
+                        res_att = (
+                            db.query(Attachment).filter(Attachment.id == res.attachment_id).first()
+                        )
+                    if res_att:
+                        res_fname = res_att.metadata_.get(
+                            "original_filename", Path(res_att.path).name
+                        )
+                        attachments_map[res_fname.lower()] = res_att
+                        attachments_map[Path(res_att.path).name.lower()] = res_att
+                    else:
+                        res_fname = f"item_{res.id}"
+
+                    if res.modality == "audio":
+                        t_str = f" t='{int(res.start or 0)}s'" if res.start is not None else ""
+                        context_parts.append(
+                            f'<<<KNOWLEDGE_VAULT_AUDIO file="{res_fname}"{t_str} score="{res.score}">>>\n'
+                            f"{res.snippet}\n"
+                            f"<<<KNOWLEDGE_VAULT_AUDIO>>>"
+                        )
+                    elif res.modality == "image":
+                        context_parts.append(
+                            f'<<<KNOWLEDGE_VAULT_IMAGE file="{res_fname}" score="{res.score}">>>\n'
+                            f"{res.snippet}\n"
+                            f"<<<KNOWLEDGE_VAULT_IMAGE>>>"
+                        )
+                    else:
+                        context_parts.append(
+                            f'<<<KNOWLEDGE_VAULT_TEXT id="{res.id}" score="{res.score}">>>\n'
+                            f"{res.snippet}\n"
+                            f"<<<KNOWLEDGE_VAULT_TEXT>>>"
+                        )
+            except Exception as search_err:
+                logger.warning("Vault search during orchestration failed", error=str(search_err))
+
         joined_context = "\n\n".join(context_parts)
         user_content_payload = (
             f"{joined_context}\n\n<<<USER_QUERY>>>\n{user_text}\n<<<USER_QUERY>>>"
@@ -602,7 +765,7 @@ async def orchestrate_message(
         ttft_ms: float | None = None
         stream_start_time = time.perf_counter()
 
-        # Handle placeholder intents: generate_report (Phase 7), search (Phase 6)
+        # Handle placeholder intents: generate_report (Phase 7)
         if intent == "generate_report":
             static_reply = (
                 "Report generation is scheduled for Phase 7. In the meantime, I can analyze your images, "
@@ -612,18 +775,10 @@ async def orchestrate_message(
                 yield format_sse("token", {"text": word + " ", "token": word + " "})
                 accumulated_text += word + " "
                 await asyncio.sleep(0.01)
-        elif intent == "search" and not saved_attachments and not retrieved_memories:
-            static_reply = (
-                "Deep cross-document search is scheduled for Phase 6. In the meantime, I can search "
-                "within our conversation history and analyze attached media."
-            )
-            for word in static_reply.split(" "):
-                yield format_sse("token", {"text": word + " ", "token": word + " "})
-                accumulated_text += word + " "
-                await asyncio.sleep(0.01)
         else:
             yield format_sse(
-                "status", {"stage": "generation", "message": "Streaming assistant response"}
+                "status",
+                {"stage": "generation", "message": "Streaming assistant response"},
             )
 
             try:
@@ -634,7 +789,8 @@ async def orchestrate_message(
                     yield format_sse("token", {"text": token, "token": token})
             except (asyncio.CancelledError, GeneratorExit):
                 logger.info(
-                    "Client disconnected during SSE stream", conversation_id=conversation_id
+                    "Client disconnected during SSE stream",
+                    conversation_id=conversation_id,
                 )
                 # Client disconnected - we STILL persist the partial response in finally!
                 raise
@@ -642,7 +798,7 @@ async def orchestrate_message(
         # -------------------------------------------------------------------------
         # 6. POST-STREAMING: Citations, Persistence, Memory Indexing, and Metrics
         # -------------------------------------------------------------------------
-        sources = parse_citations(accumulated_text, attachments_map)
+        sources = parse_citations(accumulated_text, attachments_map, db=db, user_id=user.id)
         yield format_sse("sources", {"items": sources})
 
         total_latency_ms = round((time.perf_counter() - start_total_time) * 1000.0, 2)
@@ -667,10 +823,20 @@ async def orchestrate_message(
         conv.updated_at = datetime.now(UTC)
         db.commit()
 
-        # Update long-term memory
+        # Update long-term memory and Knowledge Vault
         if accumulated_text.strip():
             memory_service.add_message_memory(
                 conversation_id, assistant_msg_id, accumulated_text.strip(), "assistant"
+            )
+            from app.services.search_service import get_search_service
+
+            get_search_service().index_message(
+                user.id,
+                conversation_id,
+                assistant_msg_id,
+                accumulated_text.strip(),
+                "assistant",
+                detected_lang or "en",
             )
 
         # Auto-title conversation on first turn
@@ -711,7 +877,10 @@ async def orchestrate_message(
                     message_id=assistant_msg_id,
                 )
         except Exception as persist_err:
-            logger.error("Failed to persist assistant reply on disconnect", error=str(persist_err))
+            logger.error(
+                "Failed to persist assistant reply on disconnect",
+                error=str(persist_err),
+            )
         raise
     except HTTPException:
         raise

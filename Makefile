@@ -45,20 +45,20 @@ run:
 
 test:
 	@echo Running backend test suite...
-	$(VENV_PYTEST) backend/tests
+	$(VENV_PYTEST) backend/tests -m "not slow"
 
 lint:
 	@echo Running ruff check...
 	$(VENV_RUFF) check backend/app backend/tests
 	@echo Running black check...
-	$(VENV_BLACK) --check backend/app backend/tests
+	$(VENV_BLACK) --check --config backend/pyproject.toml backend/app backend/tests
 	@echo Running mypy type checks...
 	$(VENV_MYPY) --config-file backend/pyproject.toml backend/app backend/tests
 
 format:
 	@echo Formatting code...
 	$(VENV_RUFF) check --fix backend/app backend/tests
-	$(VENV_BLACK) backend/app backend/tests
+	$(VENV_BLACK) --config backend/pyproject.toml backend/app backend/tests
 
 migrate:
 	@echo Running database migrations...

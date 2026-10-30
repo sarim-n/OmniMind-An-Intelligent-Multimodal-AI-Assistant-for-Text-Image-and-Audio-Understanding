@@ -173,7 +173,8 @@ class LLMService:
                     from llama_cpp import Llama  # type: ignore[import-not-found,import-untyped]
 
                     logger.info(
-                        "Loading GGUF model via llama-cpp-python", path=settings.GGUF_MODEL_PATH
+                        "Loading GGUF model via llama-cpp-python",
+                        path=settings.GGUF_MODEL_PATH,
                     )
                     self.model = Llama(
                         model_path=settings.GGUF_MODEL_PATH,
@@ -195,7 +196,9 @@ class LLMService:
                 from transformers import AutoModelForCausalLM, AutoTokenizer
 
                 logger.info(
-                    "Loading Transformers model", model=self.model_name, profile=settings.PROFILE
+                    "Loading Transformers model",
+                    model=self.model_name,
+                    profile=settings.PROFILE,
                 )
                 self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
 
@@ -224,7 +227,7 @@ class LLMService:
                             quantization_config = None
 
                     load_kwargs: dict[str, Any] = {
-                        "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
+                        "torch_dtype": (torch.float16 if self.device == "cuda" else torch.float32),
                         "device_map": "auto" if self.device == "cuda" else None,
                     }
                     if quantization_config:
@@ -238,10 +241,15 @@ class LLMService:
                 self._loaded = True
                 model_mgr.register_loaded("llm", self, self.unload)
                 logger.info(
-                    "LLM loaded successfully", model=self.model_name, backend=self.backend_type
+                    "LLM loaded successfully",
+                    model=self.model_name,
+                    backend=self.backend_type,
                 )
             except Exception as e:
-                logger.error("Failed to load real LLM model; falling back to MockLLM", error=str(e))
+                logger.error(
+                    "Failed to load real LLM model; falling back to MockLLM",
+                    error=str(e),
+                )
                 self.model = MockLLM(model_id=self.model_name)
                 self.backend_type = "mock"
                 self._loaded = True

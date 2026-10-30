@@ -12,7 +12,12 @@ from app.models.attachment import Attachment
 from app.models.job import Job
 from app.models.transcript import Transcript
 from app.models.user import User
-from app.schemas.audio import AudioInsights, AudioInsightsRequest, TranscriptRead
+from app.schemas.audio import (
+    AudioInsights,
+    AudioInsightsRequest,
+    MeetingInsights,
+    TranscriptRead,
+)
 from app.schemas.job import JobRead
 from app.services.audio_insights import get_audio_insights_service
 from app.services.audio_service import probe_audio_duration_seconds
@@ -222,5 +227,129 @@ def generate_audio_insights(
     transcript.insights = insights.model_dump()
     db.commit()
     db.refresh(transcript)
+
+    return insights
+
+
+@router.get(
+    "/{attachment_id}/meeting",
+    response_model=MeetingInsights,
+    summary="Get structured meeting insights",
+    description="Retrieve structured meeting insights, agenda, decisions, action items, and topic timelines.",
+)
+def get_meeting_insights(
+    attachment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MeetingInsights:
+    """Fetch meeting insights for an audio recording, generating on demand if not present."""
+    from app.services.meeting_insights import get_meeting_insights_service
+    from app.services.search_service import get_search_service
+
+    attachment = (
+        db.query(Attachment)
+        .filter(Attachment.id == attachment_id, Attachment.user_id == current_user.id)
+        .first()
+    )
+    if not attachment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attachment not found",
+        )
+
+    transcript = db.query(Transcript).filter(Transcript.attachment_id == attachment_id).first()
+    if not transcript:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transcript not found for this attachment",
+        )
+
+    # Check if meeting insights already stored
+    if transcript.insights and "per_topic_timeline" in transcript.insights:
+        try:
+            return MeetingInsights.model_validate(transcript.insights)
+        except Exception:
+            pass
+
+    meeting_svc = get_meeting_insights_service()
+    storage_root = get_storage_root()
+    phys_path = storage_root / attachment.path if attachment.path else None
+
+    insights = meeting_svc.generate_meeting_insights(
+        transcript_text=transcript.text,
+        segments=transcript.segments or [],
+        total_duration=attachment.duration_sec or 0.0,
+        audio_path=phys_path,
+        output_language=transcript.language,
+    )
+
+    # Store in transcript.insights
+    existing_insights = dict(transcript.insights or {})
+    existing_insights.update(insights.model_dump())
+    transcript.insights = existing_insights
+    db.commit()
+    db.refresh(transcript)
+
+    # Index into Knowledge Vault
+    conv_id = attachment.message.conversation_id if attachment.message else None
+    get_search_service().index_transcript(current_user.id, conv_id, attachment.id, transcript)
+
+    return insights
+
+
+@router.post(
+    "/{attachment_id}/meeting",
+    response_model=MeetingInsights,
+    summary="Force regenerate meeting insights",
+    description="Forces re-extraction of meeting insights, agenda, decisions, and timeline charts.",
+)
+def force_regenerate_meeting_insights(
+    attachment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MeetingInsights:
+    """Force re-run meeting insights extraction and index action items into Knowledge Vault."""
+    from app.services.meeting_insights import get_meeting_insights_service
+    from app.services.search_service import get_search_service
+
+    attachment = (
+        db.query(Attachment)
+        .filter(Attachment.id == attachment_id, Attachment.user_id == current_user.id)
+        .first()
+    )
+    if not attachment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Attachment not found",
+        )
+
+    transcript = db.query(Transcript).filter(Transcript.attachment_id == attachment_id).first()
+    if not transcript:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Transcript not found for this attachment",
+        )
+
+    meeting_svc = get_meeting_insights_service()
+    storage_root = get_storage_root()
+    phys_path = storage_root / attachment.path if attachment.path else None
+
+    insights = meeting_svc.generate_meeting_insights(
+        transcript_text=transcript.text,
+        segments=transcript.segments or [],
+        total_duration=attachment.duration_sec or 0.0,
+        audio_path=phys_path,
+        output_language=transcript.language,
+    )
+
+    existing_insights = dict(transcript.insights or {})
+    existing_insights.update(insights.model_dump())
+    transcript.insights = existing_insights
+    db.commit()
+    db.refresh(transcript)
+
+    # Index into Knowledge Vault
+    conv_id = attachment.message.conversation_id if attachment.message else None
+    get_search_service().index_transcript(current_user.id, conv_id, attachment.id, transcript)
 
     return insights

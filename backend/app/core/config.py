@@ -71,6 +71,13 @@ class Settings(BaseSettings):
     # Storage paths
     STORAGE_DIR: Path = Path("storage")
     CHROMA_PERSIST_DIR: Path = Path("storage/chroma")
+    VAULT_CHROMA_PATH: Path = Path("storage/chroma_vault")
+
+    # Knowledge Vault & Search Settings
+    SEARCH_DEFAULT_TOP_K: int = 10
+    SEARCH_RERANK_TOP_K: int = 20
+    MEETING_MIN_DURATION_SEC: float = 120.0
+    HF_TOKEN: str | None = None
 
     # Optional model ID overrides (defaults to profile selection)
     LLM_MODEL_ID: str | None = None
@@ -79,6 +86,7 @@ class Settings(BaseSettings):
     DETECTOR_MODEL_ID: str | None = None
     TEXT_EMBEDDING_MODEL_ID: str | None = None
     IMAGE_EMBEDDING_MODEL_ID: str | None = None
+    SIGLIP_MODEL_ID: str | None = None
     GGUF_MODEL_PATH: str | None = None
 
     # Context & Memory budgets (in approximate token counts)
@@ -123,7 +131,14 @@ class Settings(BaseSettings):
     # Upload limits
     MAX_UPLOAD_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
     ALLOWED_IMAGE_EXTENSIONS: list[str] = [".jpg", ".jpeg", ".png", ".webp", ".bmp"]
-    ALLOWED_AUDIO_EXTENSIONS: list[str] = [".wav", ".mp3", ".m4a", ".ogg", ".webm", ".flac"]
+    ALLOWED_AUDIO_EXTENSIONS: list[str] = [
+        ".wav",
+        ".mp3",
+        ".m4a",
+        ".ogg",
+        ".webm",
+        ".flac",
+    ]
     ALLOWED_DOCUMENT_EXTENSIONS: list[str] = [".pdf", ".txt", ".csv"]
 
     # CORS settings
@@ -170,7 +185,11 @@ class Settings(BaseSettings):
 
     @property
     def effective_image_embedding_model(self) -> str:
-        return self.IMAGE_EMBEDDING_MODEL_ID or PROFILE_MODELS[self.PROFILE]["image_embedding"]
+        return (
+            self.SIGLIP_MODEL_ID
+            or self.IMAGE_EMBEDDING_MODEL_ID
+            or PROFILE_MODELS[self.PROFILE]["image_embedding"]
+        )
 
     @property
     def active_models(self) -> dict[str, str]:

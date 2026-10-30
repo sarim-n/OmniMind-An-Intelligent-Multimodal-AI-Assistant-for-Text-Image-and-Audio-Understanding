@@ -7,7 +7,10 @@ from app.models.message import Message
 from app.models.user import User
 from app.services.embedding_service import get_embedding_service
 from app.services.memory_service import get_memory_service
-from app.services.query_rewriter import has_conversational_reference, rewrite_query_if_needed
+from app.services.query_rewriter import (
+    has_conversational_reference,
+    rewrite_query_if_needed,
+)
 
 
 def test_embedding_service_dimensions_and_prefixes() -> None:
@@ -92,7 +95,9 @@ def test_build_context_with_prompt_hygiene(db: Session, test_user: User) -> None
     # Add historical turns
     msg1 = Message(conversation_id=conv.id, role="user", content="Hello OmniMind")
     msg2 = Message(
-        conversation_id=conv.id, role="assistant", content="Hello! How can I assist you?"
+        conversation_id=conv.id,
+        role="assistant",
+        content="Hello! How can I assist you?",
     )
     db.add_all([msg1, msg2])
     db.commit()

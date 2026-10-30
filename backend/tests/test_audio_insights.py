@@ -51,7 +51,9 @@ def test_audio_insights_map_reduce_long_transcript() -> None:
     assert len(insights.key_points) > 0
 
 
-def test_audio_insights_error_handling_returns_partial(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_audio_insights_error_handling_returns_partial(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     service = get_audio_insights_service()
     llm = get_llm_service()
 

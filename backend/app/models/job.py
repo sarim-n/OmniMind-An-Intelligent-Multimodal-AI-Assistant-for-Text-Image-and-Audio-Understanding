@@ -28,7 +28,10 @@ class Job(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     status: Mapped[str] = mapped_column(String(32), index=True, nullable=False, default="queued")

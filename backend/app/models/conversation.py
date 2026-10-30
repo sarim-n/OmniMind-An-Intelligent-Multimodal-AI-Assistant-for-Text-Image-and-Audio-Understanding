@@ -30,7 +30,10 @@ class Conversation(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -38,7 +41,11 @@ class Conversation(Base):
         DateTime(timezone=True), default=utcnow, index=True, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, onupdate=utcnow, index=True, nullable=False
+        DateTime(timezone=True),
+        default=utcnow,
+        onupdate=utcnow,
+        index=True,
+        nullable=False,
     )
 
     # Relationships

@@ -37,10 +37,16 @@ class User(Base):
 
     # Relationships
     conversations: Mapped[list["Conversation"]] = relationship(
-        "Conversation", back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+        "Conversation",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     attachments: Mapped[list["Attachment"]] = relationship(
-        "Attachment", back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+        "Attachment",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
     jobs: Mapped[list["Job"]] = relationship(
         "Job", back_populates="user", cascade="all, delete-orphan", passive_deletes=True

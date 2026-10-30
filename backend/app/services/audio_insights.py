@@ -138,7 +138,9 @@ class AudioInsightsService:
                 partial_results.append(chunk_insight)
             except Exception as e:
                 logger.warning(
-                    "Error processing transcript chunk in map step", chunk_index=idx, error=str(e)
+                    "Error processing transcript chunk in map step",
+                    chunk_index=idx,
+                    error=str(e),
                 )
                 partial_results.append(
                     self._fallback_insights(chunk, f"Chunk {idx} map error: {e}")
@@ -171,7 +173,7 @@ class AudioInsightsService:
                 action_items=all_actions[:8],
                 decisions=[],
                 open_questions=[],
-                sentiment=partial_results[0].sentiment if partial_results else "neutral",
+                sentiment=(partial_results[0].sentiment if partial_results else "neutral"),
                 errors=[f"Reduce step error: {e}"],
             )
 

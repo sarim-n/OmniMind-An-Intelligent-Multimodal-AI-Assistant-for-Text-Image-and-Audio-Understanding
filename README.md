@@ -216,6 +216,81 @@ curl -N -X POST "http://127.0.0.1:8000/api/v1/conversations/${CONV_ID}/messages"
 
 ---
 
+## Knowledge Vault (Phase 6)
+
+The Knowledge Vault provides cross-modal semantic search across all ingested multimodal assets (audio transcripts, vision analyses, chat conversations, meeting insights) and automated meeting comprehension.
+
+- **Cross-Modal Semantic Search**:
+  - Persistent ChromaDB collections in `storage/chroma_vault`: `vault_text` (multilingual text embeddings via `multilingual-e5-small` or `bge-m3`) and `vault_images` (visual embeddings via `google/siglip-base-patch16-224`).
+  - **Reciprocal Rank Fusion (RRF)**: Merges text and visual result sets using rank-based weighting ($k=60$) with distance cutoff filters ($L2 \le 1.75$) and cosine similarity scaling.
+  - **Optional Cross-Modal LLM Reranking**: When `rerank=true`, candidate passages are re-scored by the local LLM against the user query for maximum precision.
+  - **Cross-Lingual Capabilities**: Queries in Hindi, Tamil, or English seamlessly retrieve content across modalities and languages. Non-English queries searching visual representations are automatically translated into English embedding space.
+  - **Deep Links & Citations**: Results include structured deep links (`/conversations/{id}?attachment={att_id}&t={start}`) and inline citations (`[audio:filename mm:ss]`, `[image:filename]`).
+  - **Strict User Privacy Scoping**: All vector searches, re-indexing, and item deletions are scoped strictly to the authenticated `user_id`.
+
+- **Automatic Meeting Insights & Diarization**:
+  - Audio uploads meeting the duration threshold (`MEETING_MIN_DURATION_SEC`, default: 120s) or explicitly requested trigger comprehensive meeting synthesis.
+  - Generates:
+    - 5-line executive summary
+    - Formal agenda and ratified decisions
+    - Action items with owner, task description, deadline, and source timestamp
+    - Chronological topic timeline (`[{topic, start, end, summary}]`)
+    - Interactive chart datasets: talk-time distribution per speaker and topic progression timeline
+  - Optional speaker diarization powered by `pyannote.audio` if `HF_TOKEN` is supplied (gracefully degrades to acoustic segment clustering if absent).
+  - Automatically indexes meeting action items and decisions into `vault_text` for instant cross-modal search.
+
+### PowerShell Knowledge Vault Examples (Mock Mode)
+
+#### 1. Cross-Modal Text Search (`POST /api/v1/search`)
+
+```powershell
+$token = "<your_bearer_token>"
+$headers = @{ 
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+}
+
+# Search across all modalities (text, audio, image)
+$searchBody = @{
+    query = "Q3 marketing budget"
+    modalities = @("text", "audio", "image")
+    top_k = 5
+    rerank = $false
+} | ConvertTo-Json
+
+$results = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/search" -Method Post -Headers $headers -Body $searchBody
+$results.results | ForEach-Object {
+    Write-Host "[$($_.modality.ToUpper())] Score: $($_.score) - $($_.snippet)"
+    Write-Host "Deep Link: $($_.deep_link)"
+}
+```
+
+#### 2. Reverse Image Search (`POST /api/v1/search/by-image`)
+
+```powershell
+# Search the vault using an uploaded query image
+curl.exe -X POST "http://127.0.0.1:8000/api/v1/search/by-image" `
+    -H "Authorization: Bearer $token" `
+    -F "image=@sample.png" `
+    -F "top_k=5"
+```
+
+#### 3. Automatic Meeting Insights (`GET /api/v1/audio/{attachment_id}/meeting`)
+
+```powershell
+# Retrieve meeting executive summary, agenda, action items, and topic timeline
+$meeting = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/audio/$attachmentId/meeting" `
+    -Method Get -Headers $headers
+
+Write-Host "Summary: `n$($meeting.executive_summary)"
+Write-Host "`nAction Items:"
+$meeting.action_items | ForEach-Object {
+    Write-Host "- [$($_.source_timestamp)s] $($_.owner): $($_.task) (Due: $($_.deadline))"
+}
+```
+
+---
+
 ## Running with Real Models
 
 By default, `MOCK_MODELS=true` is enabled for fast offline tests and CI. To run real Hugging Face open-source models:
@@ -232,15 +307,21 @@ By default, `MOCK_MODELS=true` is enabled for fast offline tests and CI. To run 
    python backend/scripts/download_models.py
    ```
    This downloads the weights defined in your `PROFILE`:
-   - `cpu`: Qwen2.5-1.5B-Instruct (int8), SmolVLM-Instruct, RT-DETR small, faster-whisper base, multilingual-e5-small
-   - `gpu_low`: Qwen2.5-1.5B / 7B 4-bit, Qwen2-VL-2B-Instruct, RT-DETR small, faster-whisper small, BAAI/bge-m3
+   - `cpu`: Qwen2.5-1.5B-Instruct (int8), SmolVLM-Instruct, RT-DETR small, faster-whisper base, multilingual-e5-small, SigLIP base
+   - `gpu_low`: Qwen2.5-1.5B / 7B 4-bit, Qwen2-VL-2B-Instruct, RT-DETR small, faster-whisper small, BAAI/bge-m3, SigLIP base
 
-3. **Run Real-Model End-to-End Tests**:
+3. **Run Knowledge Vault Retrieval Evaluation Benchmark**:
+   ```powershell
+   backend/.venv/Scripts/python benchmarks/retrieval_eval.py
+   ```
+   Evaluates Recall@1/5/10 and MRR across multimodal, cross-lingual (English, Hindi, Tamil) queries and writes metrics to `benchmarks/results/`.
+
+4. **Run Real-Model End-to-End Tests**:
    ```powershell
    backend/.venv/Scripts/pytest backend/tests/test_multimodal_orchestration.py -m slow
    ```
 
-4. **Start the Production Backend**:
+5. **Start the Production Backend**:
    ```powershell
    make run
    ```

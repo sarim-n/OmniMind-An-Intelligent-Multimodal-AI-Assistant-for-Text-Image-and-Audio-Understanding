@@ -25,7 +25,11 @@ async def execute_transcription_job(
     job_service = get_job_service()
     audio_service = get_audio_service()
 
-    logger.info("Starting background transcription job", job_id=job_id, attachment_id=attachment_id)
+    logger.info(
+        "Starting background transcription job",
+        job_id=job_id,
+        attachment_id=attachment_id,
+    )
     job_service.update_job_status(job_id=job_id, status="running", progress=0.1)
 
     try:
@@ -66,7 +70,52 @@ async def execute_transcription_job(
                 session.flush()
                 transcript_id = transcript.id
 
+            # Auto-run meeting insights if audio duration >= MEETING_MIN_DURATION_SEC
+            from app.core.config import settings
+            from app.models.attachment import Attachment
+            from app.services.meeting_insights import get_meeting_insights_service
+            from app.services.search_service import get_search_service
+
+            att = session.query(Attachment).filter(Attachment.id == attachment_id).first()
+            if result.duration >= settings.MEETING_MIN_DURATION_SEC:
+                try:
+                    meeting_svc = get_meeting_insights_service()
+                    mi = meeting_svc.generate_meeting_insights(
+                        transcript_text=result.text,
+                        segments=[s.model_dump() for s in result.segments],
+                        total_duration=result.duration,
+                        audio_path=file_path,
+                        output_language=result.language,
+                    )
+                    curr_insights = dict(existing.insights or {}) if existing else {}
+                    curr_insights.update(mi.model_dump())
+                    target_transcript = existing or transcript
+                    target_transcript.insights = curr_insights
+                    session.commit()
+                except Exception as mi_err:
+                    logger.warning(
+                        "Auto meeting insights generation failed in worker",
+                        error=str(mi_err),
+                    )
+
             session.commit()
+
+            # Index transcript and action items into Knowledge Vault
+            if att:
+                try:
+                    conv_id = att.message.conversation_id if att.message else None
+                    target_transcript = existing or transcript
+                    get_search_service().index_transcript(
+                        user_id=att.user_id,
+                        conversation_id=conv_id,
+                        attachment_id=attachment_id,
+                        transcript_data=target_transcript,
+                    )
+                except Exception as idx_err:
+                    logger.warning(
+                        "Knowledge Vault indexing failed in audio worker",
+                        error=str(idx_err),
+                    )
 
         # Finalize job
         result_payload = {
@@ -83,7 +132,9 @@ async def execute_transcription_job(
             job_id=job_id, status="done", progress=1.0, result=result_payload
         )
         logger.info(
-            "Completed transcription job successfully", job_id=job_id, transcript_id=transcript_id
+            "Completed transcription job successfully",
+            job_id=job_id,
+            transcript_id=transcript_id,
         )
 
     except Exception as e:

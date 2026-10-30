@@ -34,6 +34,7 @@ This repository adheres strictly to the **Free-Only and Permissive Open-Source c
 | **BAAI/bge-m3** | Model (Multilingual Text Embedding) | MIT / Apache-2.0 | [Hugging Face](https://huggingface.co/BAAI/bge-m3) |
 | **google/siglip-base-patch16-224** | Model (Image Embedding) | Apache-2.0 | [Hugging Face](https://huggingface.co/google/siglip-base-patch16-224) |
 | **google/siglip-so400m-patch14-384** | Model (Image Embedding) | Apache-2.0 | [Hugging Face](https://huggingface.co/google/siglip-so400m-patch14-384) |
+| **pyannote.audio** | Library / Model (Speaker Diarization, Optional) | MIT (Code) / Gated (Weights) | [pyannote/pyannote-audio](https://github.com/pyannote/pyannote-audio) |
 | **FastAPI** | Library (Backend) | MIT | [tiangolo/fastapi](https://github.com/tiangolo/fastapi) |
 | **Uvicorn** | Library (ASGI Server) | BSD-3-Clause | [encode/uvicorn](https://github.com/encode/uvicorn) |
 | **Pydantic / Pydantic Settings** | Library (Validation & Config) | MIT | [pydantic/pydantic](https://github.com/pydantic/pydantic) |

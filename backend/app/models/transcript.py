@@ -23,7 +23,10 @@ class Transcript(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     attachment_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("attachments.id", ondelete="CASCADE"), index=True, nullable=False
+        String(36),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)
     text: Mapped[str] = mapped_column(Text, nullable=False)

@@ -28,7 +28,10 @@ class Report(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     conversation_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("conversations.id", ondelete="CASCADE"), index=True, nullable=False
+        String(36),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)

@@ -71,7 +71,10 @@ class JobService:
 
                 session.commit()
                 logger.info(
-                    "Updated job status", job_id=job_id, status=status, progress=job.progress
+                    "Updated job status",
+                    job_id=job_id,
+                    status=status,
+                    progress=job.progress,
                 )
         except Exception as e:
             logger.error("Failed to update job status", job_id=job_id, error=str(e))

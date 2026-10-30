@@ -300,7 +300,10 @@ class MemoryService:
                 db.add(conversation)
                 db.commit()
                 db.refresh(conversation)
-                logger.info("Updated rolling conversation summary", conversation_id=conversation.id)
+                logger.info(
+                    "Updated rolling conversation summary",
+                    conversation_id=conversation.id,
+                )
         except Exception as e:
             logger.warning(
                 "Failed to update conversation summary",

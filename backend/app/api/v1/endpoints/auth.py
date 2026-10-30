@@ -3,7 +3,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, get_current_user, hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import Token, UserCreate, UserRead
@@ -58,7 +63,10 @@ def register(
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "username": {"type": "string", "description": "User email address"},
+                            "username": {
+                                "type": "string",
+                                "description": "User email address",
+                            },
                             "password": {"type": "string", "format": "password"},
                             "grant_type": {"type": "string"},
                             "scope": {"type": "string"},

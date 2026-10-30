@@ -136,10 +136,13 @@ class VisionService:
                 lower_name = self.model_name.lower()
                 if "qwen" in lower_name:
                     self.backend_type = "qwen2_vl"
-                    from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+                    from transformers import (
+                        AutoProcessor,
+                        Qwen2VLForConditionalGeneration,
+                    )
 
                     load_kwargs: dict[str, Any] = {
-                        "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
+                        "torch_dtype": (torch.float16 if self.device == "cuda" else torch.float32),
                     }
                     if self.device == "cuda":
                         load_kwargs["device_map"] = "auto"
@@ -169,7 +172,7 @@ class VisionService:
                     self.processor = AutoProcessor.from_pretrained(self.model_name)
                     self.model = AutoModelForVision2Seq.from_pretrained(
                         self.model_name,
-                        torch_dtype=torch.float32 if self.device == "cpu" else torch.float16,
+                        torch_dtype=(torch.float32 if self.device == "cpu" else torch.float16),
                     )
                     self.model.to(self.device)
 

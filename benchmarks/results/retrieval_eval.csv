@@ -1,0 +1,39 @@
+query,target_id,category,rank,r1,r5,r10,mrr
+recurring subscription revenue growth quarterly,item_en_01,text_to_text,1,1,1,1,1.0
+quarterly financial report 24 percent,item_en_01,text_to_text,1,1,1,1,1.0
+kubernetes cluster upgrade schedule,item_en_02,text_to_text,1,1,1,1,1.0
+marketing budget fifty thousand dollars Q3,item_en_03,text_to_text,1,1,1,1,1.0
+Alice approved marketing budget,item_en_03,text_to_text,1,1,1,1,1.0
+unauthorized API key rotation security postmortem,item_en_04,text_to_text,1,1,1,1,1.0
+mobile biometric login offline sync release,item_en_05,text_to_text,1,1,1,1,1.0
+database compound index user_id created_at,item_en_06,text_to_text,1,1,1,1,1.0
+new regional development center Bangalore,item_en_07,text_to_text,1,1,1,1,1.0
+user satisfaction updated dashboard UI 92%,item_en_08,text_to_text,1,1,1,1,1.0
+vendor master service agreement liability clauses,item_en_09,text_to_text,1,1,1,1,1.0
+server maintenance zero downtime production,item_en_10,text_to_text,1,1,1,1,1.0
+sales growth bar chart diagram,item_img_01,text_to_image,1,1,1,1,1.0
+quarterly sales across North America,item_img_01,text_to_image,1,1,1,1,1.0
+red sports car skyscraper,item_img_02,text_to_image,1,1,1,1,1.0
+sports car modern glass building,item_img_02,text_to_image,1,1,1,1,1.0
+microservices architecture diagram ChromaDB,item_img_03,text_to_image,1,1,1,1,1.0
+whiteboard user journey flowchart wireframes,item_img_04,text_to_image,1,1,1,1,1.0
+dark mode analytics dashboard latency throughput,item_img_05,text_to_image,1,1,1,1,1.0
+machine learning pipeline infographic vector retrieval,item_img_06,text_to_image,1,1,1,1,1.0
+team meeting conference room wooden table,item_img_07,text_to_image,1,1,1,1,1.0
+robotic arm mechanical assembly schematic,item_img_08,text_to_image,1,1,1,1,1.0
+CPU GPU memory utilization chart stress test,item_img_09,text_to_image,1,1,1,1,1.0
+eco-friendly product packaging mockup branding,item_img_10,text_to_image,1,1,1,1,1.0
+annual budget financial allocation meeting,item_xl_01,cross_lingual,Not Found,0,0,0,0.0
+वित्तीय आवंटन बजट,item_xl_01,cross_lingual,1,1,1,1,1.0
+new software release user security bug fixes,item_xl_02,cross_lingual,6,0,0,1,0.1667
+மென்பொருள் பாதுகாப்பு,item_xl_02,cross_lingual,1,1,1,1,1.0
+कृत्रिम बुद्धिमत्ता बहुभाषी खोज,item_xl_03,cross_lingual,Not Found,0,0,0,0.0
+செயற்கை நுண்ணறிவு பலமொழி தேடல்,item_xl_03,cross_lingual,Not Found,0,0,0,0.0
+mobile application beta testing timeline next week,item_xl_04,cross_lingual,Not Found,0,0,0,0.0
+third quarter sales target successfully achieved,item_xl_05,cross_lingual,Not Found,0,0,0,0.0
+सौर ऊर्जा पैनल स्थापना मुख्यालय,item_xl_06,cross_lingual,Not Found,0,0,0,0.0
+சூரிய மின்சக்தி திட்டம் தலைமையகம்,item_xl_06,cross_lingual,Not Found,0,0,0,0.0
+सौर ऊर्जा ग्रिड बैटरी आरेख,item_xl_07,cross_lingual,Not Found,0,0,0,0.0
+clinical research treatment successful outcomes report,item_xl_08,cross_lingual,Not Found,0,0,0,0.0
+data center security biometric verification surveillance,item_xl_09,cross_lingual,Not Found,0,0,0,0.0
+आपूर्ति श्रृंखला रसद सूची स्वचालन,item_xl_10,cross_lingual,Not Found,0,0,0,0.0

@@ -94,7 +94,9 @@ def test_preprocess_exif_rotation_transposition() -> None:
     assert loaded.size == (100, 200)
 
 
-def test_preprocess_decompression_bomb_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_preprocess_decompression_bomb_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     orig_pixels = Image.MAX_IMAGE_PIXELS
     monkeypatch.setattr(settings, "MAX_IMAGE_PIXELS", 5000)
 

@@ -23,7 +23,10 @@ class ImageAnalysis(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
     attachment_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("attachments.id", ondelete="CASCADE"), index=True, nullable=False
+        String(36),
+        ForeignKey("attachments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
     )
     caption: Mapped[str | None] = mapped_column(Text, nullable=True)
     objects: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON, nullable=True)

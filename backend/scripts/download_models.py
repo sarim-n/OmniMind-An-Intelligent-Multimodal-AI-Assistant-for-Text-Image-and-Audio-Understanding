@@ -23,6 +23,7 @@ def download_active_models() -> None:
 
     models_to_download = [
         ("Text Embedding", settings.effective_text_embedding_model),
+        ("Image Embedding (SigLIP)", settings.effective_image_embedding_model),
         ("LLM", settings.effective_llm_model),
         ("VLM", settings.effective_vlm_model),
         ("Object Detector (RT-DETR)", settings.effective_detector_model),
@@ -31,7 +32,7 @@ def download_active_models() -> None:
     for model_type, model_id in models_to_download:
         print(f"\n[+] Downloading {model_type}: {model_id} ...")
         try:
-            snapshot_download(repo_id=model_id, resume_download=True)
+            snapshot_download(repo_id=model_id)
             print(f"[✓] {model_id} downloaded successfully.")
         except Exception as e:
             print(f"[!] Warning: failed downloading {model_id}: {e}")

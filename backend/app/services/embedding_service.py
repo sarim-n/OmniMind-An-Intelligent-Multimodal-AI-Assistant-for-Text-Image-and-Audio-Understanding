@@ -15,23 +15,33 @@ logger = get_logger(__name__)
 
 
 def _deterministic_mock_vector(text: str, dim: int = 384) -> list[float]:
-    """Generate a deterministic normalized unit vector for mock embeddings."""
-    seed_bytes = hashlib.sha256(text.encode("utf-8")).digest()
-    raw_vals: list[float] = []
+    """Generate a deterministic normalized unit vector for mock embeddings with word-level semantic overlap."""
+    clean = text.lower()
+    for p in ".,!?:;\"'()[]{}<>-/\\":
+        clean = clean.replace(p, " ")
+    tokens = [w.strip() for w in clean.split() if len(w.strip()) > 1]
+    if not tokens:
+        tokens = [text.strip() or "empty"]
 
-    # Deterministically derive `dim` floats from hashes
-    current_hash = seed_bytes
-    while len(raw_vals) < dim:
-        for i in range(0, len(current_hash) - 1, 2):
-            val = ((current_hash[i] << 8) | current_hash[i + 1]) / 65535.0 - 0.5
-            raw_vals.append(val)
-            if len(raw_vals) >= dim:
-                break
-        current_hash = hashlib.sha256(current_hash).digest()
+    combined = [0.0] * dim
+    for tok in tokens:
+        seed_bytes = hashlib.sha256(tok.encode("utf-8")).digest()
+        raw_vals: list[float] = []
+        current_hash = seed_bytes
+        while len(raw_vals) < dim:
+            for i in range(0, len(current_hash) - 1, 2):
+                val = ((current_hash[i] << 8) | current_hash[i + 1]) / 65535.0 - 0.5
+                raw_vals.append(val)
+                if len(raw_vals) >= dim:
+                    break
+            current_hash = hashlib.sha256(current_hash).digest()
+
+        for j in range(dim):
+            combined[j] += raw_vals[j]
 
     # L2 normalize
-    norm = math.sqrt(sum(v * v for v in raw_vals)) or 1.0
-    return [round(v / norm, 6) for v in raw_vals]
+    norm = math.sqrt(sum(v * v for v in combined)) or 1.0
+    return [round(v / norm, 6) for v in combined]
 
 
 class MockEmbedder:
@@ -75,7 +85,8 @@ class EmbeddingService:
         self.model = None
         self._loaded = False
         logger.info(
-            "Unloaded SentenceTransformer embedder weights from memory", model=self.model_name
+            "Unloaded SentenceTransformer embedder weights from memory",
+            model=self.model_name,
         )
 
     def load(self) -> None:
@@ -119,7 +130,8 @@ class EmbeddingService:
                 )
             except Exception as e:
                 logger.error(
-                    "Failed to load SentenceTransformer model, falling back to mock", error=str(e)
+                    "Failed to load SentenceTransformer model, falling back to mock",
+                    error=str(e),
                 )
                 self.model = MockEmbedder(dim=self.dim)
                 self.device = "mock"
@@ -176,6 +188,14 @@ class EmbeddingService:
         if isinstance(input_data, str):
             return self.embed_query(input_data)
         return self.embed_texts(input_data)
+
+    def embed_documents(self, texts: list[str]) -> tuple[list[list[float]], float]:
+        """Embed document texts for vector storage."""
+        return self.embed_texts(texts)
+
+    def embed_queries(self, queries: list[str]) -> tuple[list[list[float]], float]:
+        """Embed search queries for vector search."""
+        return [self.embed_query(q)[0] for q in queries], 0.0
 
 
 def get_embedding_service() -> EmbeddingService:

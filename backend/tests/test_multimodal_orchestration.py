@@ -391,7 +391,9 @@ async def test_scenario_10_client_disconnect_persists_assistant_message(
     """Scenario (x): If client stream disconnects mid-flight, assistant message is still persisted in DB."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         conv_resp = await ac.post(
-            "/api/v1/conversations", json={"title": "Disconnect Test"}, headers=auth_headers
+            "/api/v1/conversations",
+            json={"title": "Disconnect Test"},
+            headers=auth_headers,
         )
         conv_id = conv_resp.json()["id"]
 
