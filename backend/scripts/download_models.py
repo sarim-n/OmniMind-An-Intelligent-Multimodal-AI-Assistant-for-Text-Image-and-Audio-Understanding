@@ -24,6 +24,8 @@ def download_active_models() -> None:
     models_to_download = [
         ("Text Embedding", settings.effective_text_embedding_model),
         ("LLM", settings.effective_llm_model),
+        ("VLM", settings.effective_vlm_model),
+        ("Object Detector (RT-DETR)", settings.effective_detector_model),
     ]
 
     for model_type, model_id in models_to_download:

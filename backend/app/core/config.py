@@ -38,7 +38,7 @@ PROFILE_MODELS: dict[ProfileType, dict[str, str]] = {
         "llm": "Qwen/Qwen2.5-14B-Instruct",
         "vlm": "Qwen/Qwen2-VL-7B-Instruct",
         "asr": "large-v3",
-        "detector": "PekingU/rtdetr_r101vd",
+        "detector": "PekingU/rtdetr_r50vd",
         "text_embedding": "BAAI/bge-m3",
         "image_embedding": "google/siglip-so400m-patch14-384",
     },
@@ -102,6 +102,12 @@ class Settings(BaseSettings):
     ASR_BEAM_SIZE: int = 5
     ASR_VAD_FILTER: bool = True
     MAX_AUDIO_DURATION_SEC: int = 3600
+
+    # Vision & VLM Settings
+    VLM_MAX_NEW_TOKENS: int = 512
+    VLM_MAX_IMAGE_SIDE: int = 1024
+    DETECTOR_THRESHOLD: float = 0.5
+    MAX_IMAGE_PIXELS: int = 89_478_485
 
     # JWT Authentication
     JWT_SECRET_KEY: str = "dev-secret-key-change-in-production-1234567890"

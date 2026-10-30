@@ -17,3 +17,6 @@ class HealthResponse(BaseModel):
     asr_settings: dict[str, str | int | bool] = Field(
         default_factory=dict, description="Active ASR configuration parameters"
     )
+    vision_settings: dict[str, str | int | float | bool] = Field(
+        default_factory=dict, description="Active Vision and VLM configuration parameters"
+    )

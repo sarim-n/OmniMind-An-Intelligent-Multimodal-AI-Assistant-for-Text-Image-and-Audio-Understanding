@@ -60,3 +60,57 @@ def test_real_faster_whisper_transcribe(tmp_path: Path) -> None:
         assert timing_ms > 0
     finally:
         settings.MOCK_MODELS = orig_mock
+
+
+@pytest.mark.slow
+def test_real_detector_load_and_detect() -> None:
+    """Verify loading real RT-DETR detector on a small image when opt-in enabled."""
+    if settings.MOCK_MODELS and os.getenv("RUN_REAL_MODEL_TESTS", "0") != "1":
+        pytest.skip(
+            "MOCK_MODELS=true is set; set RUN_REAL_MODEL_TESTS=1 to run real model smoke test."
+        )
+
+    from PIL import Image
+
+    from app.services.detector_service import DetectorService
+
+    img = Image.new("RGB", (200, 200), (120, 120, 120))
+    orig_mock = settings.MOCK_MODELS
+    try:
+        settings.MOCK_MODELS = False
+        service = DetectorService()
+        service.load()
+        assert service._loaded is True
+
+        result, timing_ms = service.detect(img)
+        assert result is not None
+        assert timing_ms >= 0
+    finally:
+        settings.MOCK_MODELS = orig_mock
+
+
+@pytest.mark.slow
+def test_real_vlm_load_and_describe() -> None:
+    """Verify loading real VLM checkpoint on a small image when opt-in enabled."""
+    if settings.MOCK_MODELS and os.getenv("RUN_REAL_MODEL_TESTS", "0") != "1":
+        pytest.skip(
+            "MOCK_MODELS=true is set; set RUN_REAL_MODEL_TESTS=1 to run real model smoke test."
+        )
+
+    from PIL import Image
+
+    from app.services.vision_service import VisionService
+
+    img = Image.new("RGB", (100, 100), (150, 150, 150))
+    orig_mock = settings.MOCK_MODELS
+    try:
+        settings.MOCK_MODELS = False
+        service = VisionService()
+        service.load()
+        assert service._loaded is True
+
+        caption, timing_ms = service.describe(img, detail_level="brief")
+        assert len(caption) > 0
+        assert timing_ms >= 0
+    finally:
+        settings.MOCK_MODELS = orig_mock
