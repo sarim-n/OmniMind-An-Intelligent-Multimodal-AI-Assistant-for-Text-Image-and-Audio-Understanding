@@ -99,82 +99,97 @@ class VisionService:
             cls._instance = cls()
         return cls._instance
 
+    def unload(self) -> None:
+        """Unload VLM model and processor weights from memory."""
+        self.model = None
+        self.processor = None
+        self._loaded = False
+        logger.info("Unloaded VLM weights from memory", model=self.model_name)
+
     def load(self) -> None:
         """Lazy load VLM backend based on profile and configured checkpoint."""
+        from app.services.model_manager import get_model_manager
+
+        model_mgr = get_model_manager()
         if self._loaded:
+            model_mgr.mark_used("vlm")
             return
 
-        if settings.MOCK_MODELS:
-            logger.info("Initializing MockVLM", model=self.model_name)
-            self.model = MockVLM()
-            self._loaded = True
-            return
+        with model_mgr.track_load("vlm"):
+            if settings.MOCK_MODELS:
+                logger.info("Initializing MockVLM", model=self.model_name)
+                self.model = MockVLM()
+                self._loaded = True
+                model_mgr.register_loaded("vlm", self, self.unload)
+                return
 
-        logger.info("Loading Vision Language Model", model=self.model_name)
-        try:
-            import torch
+            logger.info("Loading Vision Language Model", model=self.model_name)
+            try:
+                import torch
 
-            if settings.PROFILE != "cpu" and torch.cuda.is_available():
-                self.device = "cuda"
-            else:
-                self.device = "cpu"
+                if settings.PROFILE != "cpu" and torch.cuda.is_available():
+                    self.device = "cuda"
+                else:
+                    self.device = "cpu"
 
-            # Determine backend architecture from model name
-            lower_name = self.model_name.lower()
-            if "qwen" in lower_name:
-                self.backend_type = "qwen2_vl"
-                from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+                # Determine backend architecture from model name
+                lower_name = self.model_name.lower()
+                if "qwen" in lower_name:
+                    self.backend_type = "qwen2_vl"
+                    from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
 
-                load_kwargs: dict[str, Any] = {
-                    "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
-                }
-                if self.device == "cuda":
-                    load_kwargs["device_map"] = "auto"
+                    load_kwargs: dict[str, Any] = {
+                        "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
+                    }
+                    if self.device == "cuda":
+                        load_kwargs["device_map"] = "auto"
 
-                self.processor = AutoProcessor.from_pretrained(self.model_name)
-                self.model = Qwen2VLForConditionalGeneration.from_pretrained(
-                    self.model_name, **load_kwargs
+                    self.processor = AutoProcessor.from_pretrained(self.model_name)
+                    self.model = Qwen2VLForConditionalGeneration.from_pretrained(
+                        self.model_name, **load_kwargs
+                    )
+                    if self.device == "cpu":
+                        self.model.to("cpu")
+                else:
+                    # Default to SmolVLM
+                    self.backend_type = "smolvlm"
+                    try:
+                        from transformers import (
+                            AutoModelForImageTextToText as AutoModelForVision2Seq,
+                        )
+                        from transformers import (
+                            AutoProcessor,
+                        )
+                    except ImportError:
+                        from transformers import (  # type: ignore[attr-defined,no-redef]
+                            AutoModelForVision2Seq,
+                            AutoProcessor,
+                        )
+
+                    self.processor = AutoProcessor.from_pretrained(self.model_name)
+                    self.model = AutoModelForVision2Seq.from_pretrained(
+                        self.model_name,
+                        torch_dtype=torch.float32 if self.device == "cpu" else torch.float16,
+                    )
+                    self.model.to(self.device)
+
+                self.model.eval()
+                self._loaded = True
+                model_mgr.register_loaded("vlm", self, self.unload)
+                logger.info(
+                    "Successfully loaded VLM",
+                    model=self.model_name,
+                    backend=self.backend_type,
+                    device=self.device,
                 )
-                if self.device == "cpu":
-                    self.model.to("cpu")
-            else:
-                # Default to SmolVLM
-                self.backend_type = "smolvlm"
-                try:
-                    from transformers import (
-                        AutoModelForImageTextToText as AutoModelForVision2Seq,
-                    )
-                    from transformers import (
-                        AutoProcessor,
-                    )
-                except ImportError:
-                    from transformers import (  # type: ignore[attr-defined,no-redef]
-                        AutoModelForVision2Seq,
-                        AutoProcessor,
-                    )
-
-                self.processor = AutoProcessor.from_pretrained(self.model_name)
-                self.model = AutoModelForVision2Seq.from_pretrained(
-                    self.model_name,
-                    torch_dtype=torch.float32 if self.device == "cpu" else torch.float16,
+            except Exception as e:
+                logger.warning(
+                    "Failed to load real VLM checkpoint, falling back to MockVLM",
+                    error=str(e),
                 )
-                self.model.to(self.device)
-
-            self.model.eval()
-            self._loaded = True
-            logger.info(
-                "Successfully loaded VLM",
-                model=self.model_name,
-                backend=self.backend_type,
-                device=self.device,
-            )
-        except Exception as e:
-            logger.warning(
-                "Failed to load real VLM checkpoint, falling back to MockVLM",
-                error=str(e),
-            )
-            self.model = MockVLM()
-            self._loaded = True
+                self.model = MockVLM()
+                self._loaded = True
+                model_mgr.register_loaded("vlm", self, self.unload)
 
     def describe(
         self,
@@ -182,7 +197,11 @@ class VisionService:
         detail_level: str = "brief",
     ) -> tuple[str, float]:
         """Generate caption description of image (brief or detailed)."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        model_mgr = get_model_manager()
+        model_mgr.mark_used("vlm")
         pil_image = (
             image if isinstance(image, Image.Image) else Image.open(str(image)).convert("RGB")
         )
@@ -194,7 +213,7 @@ class VisionService:
         )
 
         start_time = time.perf_counter()
-        with track("vision", "describe") as tracker:
+        with model_mgr.acquire_inference_sync(), track("vision", "describe") as tracker:
             if settings.MOCK_MODELS or isinstance(self.model, MockVLM):
                 result = self.model.describe(pil_image, detail_level=detail_level)
             else:
@@ -212,7 +231,11 @@ class VisionService:
         history: list[dict[str, Any]] | None = None,
     ) -> tuple[str, float]:
         """Answer question about image using VLM with optional conversation history."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        model_mgr = get_model_manager()
+        model_mgr.mark_used("vlm")
         pil_image = (
             image if isinstance(image, Image.Image) else Image.open(str(image)).convert("RGB")
         )
@@ -235,7 +258,7 @@ class VisionService:
         prompt = f"{history_context}Question about image: {question}{lang_instruction}"
 
         start_time = time.perf_counter()
-        with track("vision", "answer") as tracker:
+        with model_mgr.acquire_inference_sync(), track("vision", "answer") as tracker:
             if settings.MOCK_MODELS or isinstance(self.model, MockVLM):
                 result = self.model.answer(pil_image, question, history=history)
             else:
@@ -248,7 +271,11 @@ class VisionService:
 
     def extract_text(self, image: Image.Image | Path | str) -> tuple[str, float]:
         """Perform OCR-style text reading from image using VLM."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        model_mgr = get_model_manager()
+        model_mgr.mark_used("vlm")
         pil_image = (
             image if isinstance(image, Image.Image) else Image.open(str(image)).convert("RGB")
         )
@@ -259,7 +286,7 @@ class VisionService:
         )
 
         start_time = time.perf_counter()
-        with track("vision", "extract_text") as tracker:
+        with model_mgr.acquire_inference_sync(), track("vision", "extract_text") as tracker:
             if settings.MOCK_MODELS or isinstance(self.model, MockVLM):
                 result = self.model.extract_text(pil_image)
             else:

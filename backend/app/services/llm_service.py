@@ -77,9 +77,34 @@ class MockLLM:
         if "summary" in lower_prompt:
             return "This is a rolling summary of the earlier conversation topics."
 
+        system_msg = ""
+        for m in messages:
+            if m.get("role") == "system":
+                system_msg = m.get("content", "")
+                break
+
+        # Check for modality error notes
+        if "NOTICE OF MODALITY ERRORS" in system_msg or "failed to process" in system_msg:
+            return (
+                "I processed your request, but please note that some attachments could not be processed due to errors. "
+                "Specifically, an audio file could not be processed. "
+                "I have analyzed the remaining valid attachments and image content."
+            )
+
+        # Synthesize inline citations for present media attachments
+        citations: list[str] = []
+        for m in messages:
+            c = m.get("content", "")
+            for f in re.findall(r'<<<IMAGE file="([^"]+)"', c):
+                citations.append(f"[image:{f}]")
+            for f in re.findall(r'<<<AUDIO file="([^"]+)"', c):
+                citations.append(f"[audio:{f} 00:05]")
+
+        citation_str = f" References: {' '.join(citations)}" if citations else ""
+
         return (
             f"Hello! I am OmniMind, running in mock mode. "
-            f"I received your request regarding: '{last_user_msg[:80]}'."
+            f"I received your request regarding: '{last_user_msg[:80]}'.{citation_str}"
         )
 
     async def stream_generate(
@@ -116,90 +141,111 @@ class LLMService:
             cls._instance = cls()
         return cls._instance
 
+    def unload(self) -> None:
+        """Unload LLM model and tokenizer weights from memory."""
+        self.model = None
+        self.tokenizer = None
+        self._loaded = False
+        self.backend_type = "mock" if settings.MOCK_MODELS else "transformers"
+        logger.info("Unloaded LLM weights from memory", model=self.model_name)
+
     def load(self) -> None:
         """Lazy model loader choosing backend based on PROFILE and installed libraries."""
+        from app.services.model_manager import get_model_manager
+
+        model_mgr = get_model_manager()
         if self._loaded:
+            model_mgr.mark_used("llm")
             return
 
-        if settings.MOCK_MODELS:
-            logger.info("Initializing MockLLM", model=self.model_name)
-            self.model = MockLLM(model_id=self.model_name)
-            self.backend_type = "mock"
-            self._loaded = True
-            return
+        with model_mgr.track_load("llm"):
+            if settings.MOCK_MODELS:
+                logger.info("Initializing MockLLM", model=self.model_name)
+                self.model = MockLLM(model_id=self.model_name)
+                self.backend_type = "mock"
+                self._loaded = True
+                model_mgr.register_loaded("llm", self, self.unload)
+                return
 
-        # Check for optional GGUF model path via llama-cpp-python
-        if settings.GGUF_MODEL_PATH and settings.PROFILE == "cpu":
+            # Check for optional GGUF model path via llama-cpp-python
+            if settings.GGUF_MODEL_PATH and settings.PROFILE == "cpu":
+                try:
+                    from llama_cpp import Llama  # type: ignore[import-not-found,import-untyped]
+
+                    logger.info(
+                        "Loading GGUF model via llama-cpp-python", path=settings.GGUF_MODEL_PATH
+                    )
+                    self.model = Llama(
+                        model_path=settings.GGUF_MODEL_PATH,
+                        n_ctx=settings.CONTEXT_LENGTH_LIMIT,
+                        verbose=False,
+                    )
+                    self.backend_type = "llama_cpp"
+                    self._loaded = True
+                    model_mgr.register_loaded("llm", self, self.unload)
+                    return
+                except ImportError:
+                    logger.warning(
+                        "llama-cpp-python not installed; falling back to transformers for CPU"
+                    )
+
+            # Transformers backend
             try:
-                from llama_cpp import Llama  # type: ignore[import-not-found,import-untyped]
+                import torch
+                from transformers import AutoModelForCausalLM, AutoTokenizer
 
                 logger.info(
-                    "Loading GGUF model via llama-cpp-python", path=settings.GGUF_MODEL_PATH
+                    "Loading Transformers model", model=self.model_name, profile=settings.PROFILE
                 )
-                self.model = Llama(
-                    model_path=settings.GGUF_MODEL_PATH,
-                    n_ctx=settings.CONTEXT_LENGTH_LIMIT,
-                    verbose=False,
-                )
-                self.backend_type = "llama_cpp"
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+
+                if settings.PROFILE == "cpu":
+                    self.device = "cpu"
+                    self.model = AutoModelForCausalLM.from_pretrained(
+                        self.model_name,
+                        torch_dtype=torch.float32,
+                        low_cpu_mem_usage=True,
+                    )
+                else:
+                    self.device = "cuda" if torch.cuda.is_available() else "cpu"
+                    # Check for 4-bit quantization on GPU
+                    quantization_config = None
+                    if self.device == "cuda":
+                        try:
+                            from transformers import BitsAndBytesConfig
+
+                            quantization_config = BitsAndBytesConfig(
+                                load_in_4bit=True,
+                                bnb_4bit_compute_dtype=torch.float16,
+                                bnb_4bit_quant_type="nf4",
+                            )
+                            logger.info("Using 4-bit BitsAndBytes quantization")
+                        except (ImportError, Exception):
+                            quantization_config = None
+
+                    load_kwargs: dict[str, Any] = {
+                        "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
+                        "device_map": "auto" if self.device == "cuda" else None,
+                    }
+                    if quantization_config:
+                        load_kwargs["quantization_config"] = quantization_config
+
+                    self.model = AutoModelForCausalLM.from_pretrained(
+                        self.model_name, **load_kwargs
+                    )
+
+                self.backend_type = "transformers"
                 self._loaded = True
-                return
-            except ImportError:
-                logger.warning(
-                    "llama-cpp-python not installed; falling back to transformers for CPU"
+                model_mgr.register_loaded("llm", self, self.unload)
+                logger.info(
+                    "LLM loaded successfully", model=self.model_name, backend=self.backend_type
                 )
-
-        # Transformers backend
-        try:
-            import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
-
-            logger.info(
-                "Loading Transformers model", model=self.model_name, profile=settings.PROFILE
-            )
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-
-            if settings.PROFILE == "cpu":
-                self.device = "cpu"
-                self.model = AutoModelForCausalLM.from_pretrained(
-                    self.model_name,
-                    torch_dtype=torch.float32,
-                    low_cpu_mem_usage=True,
-                )
-            else:
-                self.device = "cuda" if torch.cuda.is_available() else "cpu"
-                # Check for 4-bit quantization on GPU
-                quantization_config = None
-                if self.device == "cuda":
-                    try:
-                        from transformers import BitsAndBytesConfig
-
-                        quantization_config = BitsAndBytesConfig(
-                            load_in_4bit=True,
-                            bnb_4bit_compute_dtype=torch.float16,
-                            bnb_4bit_quant_type="nf4",
-                        )
-                        logger.info("Using 4-bit BitsAndBytes quantization")
-                    except (ImportError, Exception):
-                        quantization_config = None
-
-                load_kwargs: dict[str, Any] = {
-                    "torch_dtype": torch.float16 if self.device == "cuda" else torch.float32,
-                    "device_map": "auto" if self.device == "cuda" else None,
-                }
-                if quantization_config:
-                    load_kwargs["quantization_config"] = quantization_config
-
-                self.model = AutoModelForCausalLM.from_pretrained(self.model_name, **load_kwargs)
-
-            self.backend_type = "transformers"
-            self._loaded = True
-            logger.info("LLM loaded successfully", model=self.model_name, backend=self.backend_type)
-        except Exception as e:
-            logger.error("Failed to load real LLM model; falling back to MockLLM", error=str(e))
-            self.model = MockLLM(model_id=self.model_name)
-            self.backend_type = "mock"
-            self._loaded = True
+            except Exception as e:
+                logger.error("Failed to load real LLM model; falling back to MockLLM", error=str(e))
+                self.model = MockLLM(model_id=self.model_name)
+                self.backend_type = "mock"
+                self._loaded = True
+                model_mgr.register_loaded("llm", self, self.unload)
 
     def generate(
         self,
@@ -208,38 +254,45 @@ class LLMService:
         temperature: float = 0.7,
     ) -> tuple[str, float]:
         """Generate response text for chat messages. Returns (output_text, timing_ms)."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        model_mgr = get_model_manager()
+        model_mgr.mark_used("llm")
         start = time.perf_counter()
-        with track("llm", "generate") as tracker:
-            if self.backend_type == "mock":
-                out = self.model.generate(messages, max_tokens=max_tokens, temperature=temperature)
-                tracker.set_tokens(count=len(out.split()))
-            elif self.backend_type == "llama_cpp":
-                resp = self.model.create_chat_completion(
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                )
-                out = resp["choices"][0]["message"]["content"]
-                tracker.set_tokens(
-                    count=resp.get("usage", {}).get("completion_tokens", len(out.split()))
-                )
-            else:
-                prompt_text = self.tokenizer.apply_chat_template(
-                    messages, tokenize=False, add_generation_prompt=True
-                )
-                inputs = self.tokenizer(prompt_text, return_tensors="pt").to(self.device)
-                input_len = inputs["input_ids"].shape[1]
-                output_ids = self.model.generate(
-                    **inputs,
-                    max_new_tokens=max_tokens,
-                    temperature=temperature,
-                    do_sample=temperature > 0,
-                    pad_token_id=self.tokenizer.eos_token_id,
-                )
-                gen_ids = output_ids[0][input_len:]
-                out = self.tokenizer.decode(gen_ids, skip_special_tokens=True)
-                tracker.set_tokens(count=len(gen_ids), prompt_tokens=input_len)
+        with model_mgr.acquire_inference_sync():
+            with track("llm", "generate") as tracker:
+                if self.backend_type == "mock":
+                    out = self.model.generate(
+                        messages, max_tokens=max_tokens, temperature=temperature
+                    )
+                    tracker.set_tokens(count=len(out.split()))
+                elif self.backend_type == "llama_cpp":
+                    resp = self.model.create_chat_completion(
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                    )
+                    out = resp["choices"][0]["message"]["content"]
+                    tracker.set_tokens(
+                        count=resp.get("usage", {}).get("completion_tokens", len(out.split()))
+                    )
+                else:
+                    prompt_text = self.tokenizer.apply_chat_template(
+                        messages, tokenize=False, add_generation_prompt=True
+                    )
+                    inputs = self.tokenizer(prompt_text, return_tensors="pt").to(self.device)
+                    input_len = inputs["input_ids"].shape[1]
+                    output_ids = self.model.generate(
+                        **inputs,
+                        max_new_tokens=max_tokens,
+                        temperature=temperature,
+                        do_sample=temperature > 0,
+                        pad_token_id=self.tokenizer.eos_token_id,
+                    )
+                    gen_ids = output_ids[0][input_len:]
+                    out = self.tokenizer.decode(gen_ids, skip_special_tokens=True)
+                    tracker.set_tokens(count=len(gen_ids), prompt_tokens=input_len)
 
             timing_ms = (time.perf_counter() - start) * 1000.0
         return out, round(timing_ms, 2)
@@ -251,7 +304,10 @@ class LLMService:
         temperature: float = 0.7,
     ) -> AsyncGenerator[str, None]:
         """Async generator streaming tokens in real time without blocking event loop."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        get_model_manager().mark_used("llm")
         if self.backend_type == "mock":
             async for token in self.model.stream_generate(messages, max_tokens, temperature):
                 yield token

@@ -40,4 +40,10 @@ async def health_check() -> HealthResponse:
             "detector_threshold": settings.DETECTOR_THRESHOLD,
             "max_image_pixels": settings.MAX_IMAGE_PIXELS,
         },
+        orchestration_settings={
+            "max_loaded_models": settings.MAX_LOADED_MODELS,
+            "max_concurrent_inferences": settings.MAX_CONCURRENT_INFERENCES,
+            "max_files_per_message": settings.MAX_FILES_PER_MESSAGE,
+            "max_total_audio_duration_per_message_sec": settings.MAX_TOTAL_AUDIO_DURATION_PER_MESSAGE_SEC,
+        },
     )

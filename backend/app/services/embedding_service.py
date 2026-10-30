@@ -70,43 +70,61 @@ class EmbeddingService:
             cls._instance = cls()
         return cls._instance
 
+    def unload(self) -> None:
+        """Unload SentenceTransformer embedding model weights from memory."""
+        self.model = None
+        self._loaded = False
+        logger.info(
+            "Unloaded SentenceTransformer embedder weights from memory", model=self.model_name
+        )
+
     def load(self) -> None:
         """Lazy model loader respecting MOCK_MODELS and hardware profile."""
+        from app.services.model_manager import get_model_manager
+
+        model_mgr = get_model_manager()
         if self._loaded:
+            model_mgr.mark_used("embedder")
             return
 
-        if settings.MOCK_MODELS:
-            logger.info("Initializing MockEmbedder", model=self.model_name, dim=self.dim)
-            self.model = MockEmbedder(dim=self.dim)
-            self.device = "mock"
-            self._loaded = True
-            return
+        with model_mgr.track_load("embedder"):
+            if settings.MOCK_MODELS:
+                logger.info("Initializing MockEmbedder", model=self.model_name, dim=self.dim)
+                self.model = MockEmbedder(dim=self.dim)
+                self.device = "mock"
+                self._loaded = True
+                model_mgr.register_loaded("embedder", self, self.unload)
+                return
 
-        logger.info("Loading SentenceTransformer model", model=self.model_name)
-        try:
-            import torch
-            from sentence_transformers import SentenceTransformer
+            logger.info("Loading SentenceTransformer model", model=self.model_name)
+            try:
+                import torch
+                from sentence_transformers import SentenceTransformer
 
-            if settings.PROFILE != "cpu" and torch.cuda.is_available():
-                self.device = "cuda"
-            else:
-                self.device = "cpu"
+                if settings.PROFILE != "cpu" and torch.cuda.is_available():
+                    self.device = "cuda"
+                else:
+                    self.device = "cpu"
 
-            self.model = SentenceTransformer(self.model_name, device=self.device)
-            # Retrieve exact embedding dimension if available
-            if hasattr(self.model, "get_sentence_embedding_dimension"):
-                self.dim = self.model.get_sentence_embedding_dimension() or self.dim
-            self._loaded = True
-            logger.info(
-                "SentenceTransformer loaded successfully", model=self.model_name, device=self.device
-            )
-        except Exception as e:
-            logger.error(
-                "Failed to load SentenceTransformer model, falling back to mock", error=str(e)
-            )
-            self.model = MockEmbedder(dim=self.dim)
-            self.device = "mock"
-            self._loaded = True
+                self.model = SentenceTransformer(self.model_name, device=self.device)
+                # Retrieve exact embedding dimension if available
+                if hasattr(self.model, "get_sentence_embedding_dimension"):
+                    self.dim = self.model.get_sentence_embedding_dimension() or self.dim
+                self._loaded = True
+                model_mgr.register_loaded("embedder", self, self.unload)
+                logger.info(
+                    "SentenceTransformer loaded successfully",
+                    model=self.model_name,
+                    device=self.device,
+                )
+            except Exception as e:
+                logger.error(
+                    "Failed to load SentenceTransformer model, falling back to mock", error=str(e)
+                )
+                self.model = MockEmbedder(dim=self.dim)
+                self.device = "mock"
+                self._loaded = True
+                model_mgr.register_loaded("embedder", self, self.unload)
 
     def _prepare_text(self, text: str, is_query: bool) -> str:
         """Prepend required prefixes for e5 family models."""
@@ -119,7 +137,10 @@ class EmbeddingService:
 
     def embed_texts(self, texts: list[str]) -> tuple[list[list[float]], float]:
         """Embed a batch of document/passage texts. Returns (embeddings, timing_ms)."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        get_model_manager().mark_used("embedder")
         start = time.perf_counter()
         with track("embedding", "embed_texts") as tracker:
             prepared = [self._prepare_text(t, is_query=False) for t in texts]
@@ -134,7 +155,10 @@ class EmbeddingService:
 
     def embed_query(self, query: str) -> tuple[list[float], float]:
         """Embed a single search query. Returns (embedding, timing_ms)."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        get_model_manager().mark_used("embedder")
         start = time.perf_counter()
         with track("embedding", "embed_query") as tracker:
             prepared = self._prepare_text(query, is_query=True)

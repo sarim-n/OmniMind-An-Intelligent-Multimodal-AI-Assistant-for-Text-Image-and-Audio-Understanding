@@ -103,3 +103,17 @@ async def test_me_invalid_token(client: AsyncClient) -> None:
         headers={"Authorization": "Bearer invalid.token.signature"},
     )
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_login_oauth2_form_data(client: AsyncClient, test_user: User) -> None:
+    """Test login with OAuth2 standard form data (username=email, password)."""
+    response = await client.post(
+        "/api/v1/auth/login",
+        data={"username": test_user.email, "password": "Password123!"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"

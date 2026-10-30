@@ -1,7 +1,7 @@
 """Pydantic schemas for conversation messages."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,6 +28,7 @@ class MessageRead(BaseModel):
     content: str
     language: str | None = None
     modalities: list[str] = Field(default_factory=list)
+    sources: list[dict[str, Any]] = Field(default_factory=list)
     created_at: datetime
     attachments: list[AttachmentRead] = Field(default_factory=list)
 

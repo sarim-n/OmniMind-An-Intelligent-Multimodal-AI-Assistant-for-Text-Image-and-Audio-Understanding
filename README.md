@@ -137,14 +137,111 @@ backend/.venv/Scripts/mypy backend/app backend/tests
 
 ---
 
-## Running with Docker Compose (PostgreSQL & Multi-Container)
+## Authentication Contract
 
-When using Docker, migrations are executed automatically on container startup against PostgreSQL:
+The API supports both standard OAuth2 password credentials (form data) and direct JSON payloads:
+
+- **Endpoint**: `POST /api/v1/auth/login`
+- **OAuth2 Form Data** (`application/x-www-form-urlencoded` or `multipart/form-data`):
+  - `username`: User email (e.g., `user@example.com`)
+  - `password`: User password
+- **JSON Payload** (`application/json`):
+  - `{"email": "user@example.com", "password": "password"}`
+- **Response**: `{"access_token": "<jwt>", "token_type": "bearer"}`
+- Fully compatible with FastAPI's OpenAPI `/docs` Authorize modal.
+
+---
+
+## Unified Multimodal Orchestration (Phase 5)
+
+OmniMind processes text, images, and audio in a single conversational turn via `POST /api/v1/conversations/{id}/messages`.
+
+- **Input Formats**:
+  - `multipart/form-data`: `content` (optional text), `language` (optional hint), `images[]` (0..N image files), `audio[]` (0..N audio files).
+  - `application/json`: `{"content": "..."}` for legacy text-only messages.
+- **Model Memory Manager** (`app/services/model_manager.py`):
+  - Maintains model sizes and tracks resident heavy models (`llm`, `vlm`, `asr`, `detector`, `embedder`).
+  - Automatically unloads least-recently-used models on `cpu` and `gpu_low` when `MAX_LOADED_MODELS` is reached (`torch.cuda.empty_cache()` + garbage collection).
+  - Restricts concurrent heavy model inferences with a semaphore (`MAX_CONCURRENT_INFERENCES`).
+- **SSE Stream Events**:
+  - `status`: `{stage, message}` (e.g. `ingest`, `audio`, `image`, `vqa`, `generation`)
+  - `transcript`: `{attachment_id, language, text, segments_count}`
+  - `image_analysis`: `{attachment_id, caption, objects, warnings}`
+  - `token`: `{text}` (streamed LLM tokens)
+  - `sources`: `{items: [{type, file, timestamp, attachment_id}]}` (inline citations parsed from reply)
+  - `done`: `{message_id, metrics: {total_latency_ms, ttft_ms, intent, modalities}}`
+  - `error`: `{stage, message}` (graceful degradation if an individual modality fails)
+- **Security & Hygiene**: Transcripts, OCR, and visual captions are formatted into delimited passive blocks (`<<<AUDIO ...>>>`, `<<<IMAGE ...>>>`) and treated as untrusted data to prevent prompt injection.
+
+### PowerShell 3-Modality Example (Mock Mode)
+
+To send a 3-modality message (text + image + audio) and read the live SSE event stream:
+
+```powershell
+# 1. Register & Login to get JWT Bearer Token
+$loginBody = @{
+    username = "testuser@example.com"
+    password = "SecurePassword123!"
+}
+$loginRes = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/auth/login" -Method Post -Body $loginBody
+$token = $loginRes.access_token
+$headers = @{ Authorization = "Bearer $token" }
+
+# 2. Create a Conversation
+$conv = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/conversations" -Method Post `
+    -Headers $headers -ContentType "application/json" -Body '{"title": "Multimodal Inspection"}'
+$convId = $conv.id
+
+# 3. Create sample dummy image and audio files
+[IO.File]::WriteAllBytes("sample.png", [Convert]::FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="))
+[IO.File]::WriteAllBytes("sample.wav", [Convert]::FromBase64String("UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA="))
+
+# 4. Stream 3-modality message using curl.exe
+curl.exe -N -X POST "http://127.0.0.1:8000/api/v1/conversations/$convId/messages" `
+    -H "Authorization: Bearer $token" `
+    -F "content=What is shown in the picture, and does the audio match?" `
+    -F "images=@sample.png" `
+    -F "audio=@sample.wav"
+```
+
+### cURL 3-Modality Example
 
 ```bash
-# Standard development stack (Postgres + Backend + Frontend)
-docker compose up --build
-
-# With NVIDIA GPU acceleration
-docker compose --profile gpu up --build
+curl -N -X POST "http://127.0.0.1:8000/api/v1/conversations/${CONV_ID}/messages" \
+  -H "Authorization: Bearer ${JWT_TOKEN}" \
+  -F "content=Does the speaker statement align with the chart?" \
+  -F "images=@chart.png" \
+  -F "audio=@meeting.mp3"
 ```
+
+---
+
+## Running with Real Models
+
+By default, `MOCK_MODELS=true` is enabled for fast offline tests and CI. To run real Hugging Face open-source models:
+
+1. **Configure `.env`**:
+   ```dotenv
+   MOCK_MODELS=false
+   PROFILE=cpu          # or gpu_low (<=8GB VRAM) / gpu_mid / gpu_high
+   MAX_LOADED_MODELS=2  # memory manager LRU eviction threshold
+   ```
+
+2. **Pre-download Model Checkpoints**:
+   ```powershell
+   python backend/scripts/download_models.py
+   ```
+   This downloads the weights defined in your `PROFILE`:
+   - `cpu`: Qwen2.5-1.5B-Instruct (int8), SmolVLM-Instruct, RT-DETR small, faster-whisper base, multilingual-e5-small
+   - `gpu_low`: Qwen2.5-1.5B / 7B 4-bit, Qwen2-VL-2B-Instruct, RT-DETR small, faster-whisper small, BAAI/bge-m3
+
+3. **Run Real-Model End-to-End Tests**:
+   ```powershell
+   backend/.venv/Scripts/pytest backend/tests/test_multimodal_orchestration.py -m slow
+   ```
+
+4. **Start the Production Backend**:
+   ```powershell
+   make run
+   ```
+

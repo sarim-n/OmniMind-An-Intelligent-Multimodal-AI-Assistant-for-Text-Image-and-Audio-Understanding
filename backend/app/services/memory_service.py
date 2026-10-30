@@ -92,6 +92,49 @@ class MemoryService:
                 error=str(e),
             )
 
+    def add_multimodal_artifact_memory(
+        self,
+        conversation_id: str,
+        artifact_id: str,
+        content: str,
+        metadata: dict[str, Any],
+    ) -> None:
+        """Index multimodal artifact text (transcript segment, caption, OCR) into ChromaDB."""
+        clean_content = content.strip()
+        if not clean_content:
+            return
+
+        try:
+            embedder = get_embedding_service()
+            embedding, _ = embedder.embed_texts([clean_content])
+            collection = self._get_collection(conversation_id)
+            meta = {
+                "conversation_id": conversation_id,
+                "attachment_id": str(metadata.get("attachment_id", "")),
+                "type": str(metadata.get("type", "artifact")),
+                "timestamps": str(metadata.get("timestamps", "")),
+                "file_name": str(metadata.get("file_name", "")),
+            }
+            collection.upsert(
+                ids=[artifact_id],
+                documents=[clean_content],
+                embeddings=embedding,
+                metadatas=[meta],
+            )
+            logger.info(
+                "Indexed multimodal artifact to conversation memory",
+                conversation_id=conversation_id,
+                artifact_id=artifact_id,
+                type=meta["type"],
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to index multimodal artifact to ChromaDB",
+                conversation_id=conversation_id,
+                artifact_id=artifact_id,
+                error=str(e),
+            )
+
     def delete_conversation_memory(self, conversation_id: str) -> None:
         """Purge ChromaDB collection for a deleted conversation."""
         col_name = self._sanitize_collection_name(conversation_id)
@@ -109,7 +152,7 @@ class MemoryService:
         top_k: int | None = None,
         exclude_message_ids: set[str] | None = None,
     ) -> list[str]:
-        """Retrieve top-K semantically relevant past turns from ChromaDB."""
+        """Retrieve top-K semantically relevant past turns and multimodal artifacts from ChromaDB."""
         k = top_k or settings.MEMORY_TOP_K
         clean_query = query.strip()
         if not clean_query:
@@ -142,13 +185,80 @@ class MemoryService:
             for doc_id, doc, meta in zip(ids, docs, metas):
                 if exclude_message_ids and doc_id in exclude_message_ids:
                     continue
-                role = meta.get("role", "assistant")
-                retrieved.append(f"[{role.upper()}]: {doc}")
+                meta_type = meta.get("type")
+                if meta_type == "transcript_segment":
+                    file_name = meta.get("file_name", "audio")
+                    timestamps = meta.get("timestamps", "")
+                    retrieved.append(f'[AUDIO file="{file_name}" t="{timestamps}"]: {doc}')
+                elif meta_type == "image_caption":
+                    file_name = meta.get("file_name", "image")
+                    retrieved.append(f'[IMAGE file="{file_name}"]: {doc}')
+                elif meta_type == "image_ocr":
+                    file_name = meta.get("file_name", "image")
+                    retrieved.append(f'[IMAGE OCR file="{file_name}"]: {doc}')
+                else:
+                    role = meta.get("role", "assistant")
+                    retrieved.append(f"[{role.upper()}]: {doc}")
 
             return retrieved
         except Exception as e:
             logger.warning(
                 "Error retrieving memories from ChromaDB",
+                conversation_id=conversation_id,
+                error=str(e),
+            )
+            return []
+
+    def find_relevant_attachments(
+        self,
+        conversation_id: str,
+        query: str,
+        top_k: int = 5,
+        type_prefix: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Find past attachments and their metadata matching a semantic search query."""
+        clean_query = query.strip()
+        if not clean_query:
+            return []
+
+        try:
+            embedder = get_embedding_service()
+            query_vector, _ = embedder.embed_query(clean_query)
+            col_name = self._sanitize_collection_name(conversation_id)
+
+            existing_cols = [c.name for c in self.chroma_client.list_collections()]
+            if col_name not in existing_cols:
+                return []
+
+            collection = self._get_collection(conversation_id)
+            if collection.count() == 0:
+                return []
+
+            results = collection.query(
+                query_embeddings=[query_vector],
+                n_results=min(top_k * 2, collection.count()),
+            )
+
+            metas = results.get("metadatas", [[]])[0]
+            matched: list[dict[str, Any]] = []
+            seen_attachments: set[str] = set()
+
+            for meta in metas:
+                att_id = meta.get("attachment_id")
+                mtype = meta.get("type", "")
+                if not att_id or att_id in seen_attachments:
+                    continue
+                if type_prefix and not mtype.startswith(type_prefix):
+                    continue
+                seen_attachments.add(att_id)
+                matched.append(meta)
+                if len(matched) >= top_k:
+                    break
+
+            return matched
+        except Exception as e:
+            logger.warning(
+                "Error finding relevant attachments from ChromaDB",
                 conversation_id=conversation_id,
                 error=str(e),
             )

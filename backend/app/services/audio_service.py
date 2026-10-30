@@ -83,8 +83,20 @@ class MockASR:
         task: str = "transcribe",
         word_timestamps: bool = False,
     ) -> TranscriptionResult:
-        duration = probe_audio_duration_seconds(file_path)
         path_str = str(file_path).lower()
+        if "corrupt" in path_str:
+            raise ValueError(f"Corrupted audio file: {file_path.name}")
+
+        if file_path.suffix.lower() == ".wav":
+            try:
+                import wave
+
+                with wave.open(str(file_path), "rb") as wf:
+                    wf.getnframes()
+            except Exception as e:
+                raise ValueError(f"Corrupted or invalid WAV file: {e!s}") from e
+
+        duration = probe_audio_duration_seconds(file_path)
 
         # Determine language (forced, hinted in filename, or default "en")
         if forced_language:
@@ -187,49 +199,63 @@ class AudioService:
             cls._instance = cls()
         return cls._instance
 
+    def unload(self) -> None:
+        """Unload faster-whisper model from memory."""
+        self.model = None
+        self._loaded = False
+        logger.info("Unloaded faster-whisper ASR weights from memory", model=self.model_name)
+
     def load(self) -> None:
         """Lazy loader for faster-whisper WhisperModel."""
+        from app.services.model_manager import get_model_manager
+
+        model_mgr = get_model_manager()
         if self._loaded:
+            model_mgr.mark_used("asr")
             return
 
-        if settings.MOCK_MODELS:
-            logger.info("Initializing MockASR", model=self.model_name)
-            self.model = MockASR()
-            self._loaded = True
-            return
+        with model_mgr.track_load("asr"):
+            if settings.MOCK_MODELS:
+                logger.info("Initializing MockASR", model=self.model_name)
+                self.model = MockASR()
+                self._loaded = True
+                model_mgr.register_loaded("asr", self, self.unload)
+                return
 
-        logger.info(
-            "Loading faster-whisper model",
-            model=self.model_name,
-            profile=settings.PROFILE,
-            compute_type=self.compute_type,
-            ffmpeg_available=HAS_FFMPEG,
-        )
-
-        try:
-            import torch
-            from faster_whisper import WhisperModel
-
-            if settings.PROFILE != "cpu" and torch.cuda.is_available():
-                self.device = "cuda"
-                self.compute_type = "float16"
-            else:
-                self.device = "cpu"
-                self.compute_type = "int8"
-
-            self.model = WhisperModel(
-                self.model_name,
-                device=self.device,
+            logger.info(
+                "Loading faster-whisper model",
+                model=self.model_name,
+                profile=settings.PROFILE,
                 compute_type=self.compute_type,
+                ffmpeg_available=HAS_FFMPEG,
             )
-            self._loaded = True
-            logger.info("faster-whisper model loaded successfully", device=self.device)
-        except Exception as e:
-            logger.error(
-                "Failed to load faster-whisper model, falling back to MockASR", error=str(e)
-            )
-            self.model = MockASR()
-            self._loaded = True
+
+            try:
+                import torch
+                from faster_whisper import WhisperModel
+
+                if settings.PROFILE != "cpu" and torch.cuda.is_available():
+                    self.device = "cuda"
+                    self.compute_type = "float16"
+                else:
+                    self.device = "cpu"
+                    self.compute_type = "int8"
+
+                self.model = WhisperModel(
+                    self.model_name,
+                    device=self.device,
+                    compute_type=self.compute_type,
+                )
+                self._loaded = True
+                model_mgr.register_loaded("asr", self, self.unload)
+                logger.info("faster-whisper model loaded successfully", device=self.device)
+            except Exception as e:
+                logger.error(
+                    "Failed to load faster-whisper model, falling back to MockASR", error=str(e)
+                )
+                self.model = MockASR()
+                self._loaded = True
+                model_mgr.register_loaded("asr", self, self.unload)
 
     def transcribe(
         self,
@@ -243,7 +269,12 @@ class AudioService:
         Validates duration against MAX_AUDIO_DURATION_SEC, runs lazily, computes RTF,
         and returns (TranscriptionResult, latency_ms).
         """
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        model_mgr = get_model_manager()
+        model_mgr.mark_used("asr")
+
         path = Path(file_path).resolve()
         if not path.is_file():
             raise FileNotFoundError(f"Audio file not found: {path}")
@@ -257,7 +288,7 @@ class AudioService:
             )
 
         start_time = time.perf_counter()
-        with track("audio", "transcribe") as tracker:
+        with model_mgr.acquire_inference_sync(), track("audio", "transcribe") as tracker:
             if settings.MOCK_MODELS or isinstance(self.model, MockASR):
                 result = self.model.transcribe(
                     file_path=path,

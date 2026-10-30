@@ -85,44 +85,59 @@ class DetectorService:
             cls._instance = cls()
         return cls._instance
 
+    def unload(self) -> None:
+        """Unload RT-DETR model and image processor from memory."""
+        self.model = None
+        self.processor = None
+        self._loaded = False
+        logger.info("Unloaded RT-DETR detector weights from memory", model=self.model_name)
+
     def load(self) -> None:
         """Lazy loader for RT-DETR model and image processor."""
+        from app.services.model_manager import get_model_manager
+
+        model_mgr = get_model_manager()
         if self._loaded:
+            model_mgr.mark_used("detector")
             return
 
-        if settings.MOCK_MODELS:
-            logger.info("Initializing MockDetector", model=self.model_name)
-            self.model = MockDetector()
-            self._loaded = True
-            return
+        with model_mgr.track_load("detector"):
+            if settings.MOCK_MODELS:
+                logger.info("Initializing MockDetector", model=self.model_name)
+                self.model = MockDetector()
+                self._loaded = True
+                model_mgr.register_loaded("detector", self, self.unload)
+                return
 
-        logger.info("Loading RT-DETR object detector", model=self.model_name)
-        try:
-            import torch
-            from transformers import AutoImageProcessor, AutoModelForObjectDetection
+            logger.info("Loading RT-DETR object detector", model=self.model_name)
+            try:
+                import torch
+                from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
-            if settings.PROFILE != "cpu" and torch.cuda.is_available():
-                self.device = "cuda"
-            else:
-                self.device = "cpu"
+                if settings.PROFILE != "cpu" and torch.cuda.is_available():
+                    self.device = "cuda"
+                else:
+                    self.device = "cpu"
 
-            self.processor = AutoImageProcessor.from_pretrained(self.model_name)
-            self.model = AutoModelForObjectDetection.from_pretrained(self.model_name)
-            self.model.to(self.device)
-            self.model.eval()
-            self._loaded = True
-            logger.info(
-                "Successfully loaded RT-DETR detector",
-                model=self.model_name,
-                device=self.device,
-            )
-        except Exception as e:
-            logger.warning(
-                "Failed to load real RT-DETR detector, falling back to MockDetector",
-                error=str(e),
-            )
-            self.model = MockDetector()
-            self._loaded = True
+                self.processor = AutoImageProcessor.from_pretrained(self.model_name)
+                self.model = AutoModelForObjectDetection.from_pretrained(self.model_name)
+                self.model.to(self.device)
+                self.model.eval()
+                self._loaded = True
+                model_mgr.register_loaded("detector", self, self.unload)
+                logger.info(
+                    "Successfully loaded RT-DETR detector",
+                    model=self.model_name,
+                    device=self.device,
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to load real RT-DETR detector, falling back to MockDetector",
+                    error=str(e),
+                )
+                self.model = MockDetector()
+                self._loaded = True
+                model_mgr.register_loaded("detector", self, self.unload)
 
     def detect(
         self,
@@ -130,7 +145,11 @@ class DetectorService:
         threshold: float = settings.DETECTOR_THRESHOLD,
     ) -> tuple[DetectionResult, float]:
         """Detect objects in image and return (DetectionResult, latency_ms)."""
+        from app.services.model_manager import get_model_manager
+
         self.load()
+        model_mgr = get_model_manager()
+        model_mgr.mark_used("detector")
 
         if isinstance(image, (str, Path)):
             pil_image = Image.open(str(image)).convert("RGB")
@@ -138,7 +157,7 @@ class DetectorService:
             pil_image = image.convert("RGB")
 
         start_time = time.perf_counter()
-        with track("vision", "detect") as tracker:
+        with model_mgr.acquire_inference_sync(), track("vision", "detect") as tracker:
             if settings.MOCK_MODELS or isinstance(self.model, MockDetector):
                 result = self.model.detect(pil_image, threshold=threshold)
             else:

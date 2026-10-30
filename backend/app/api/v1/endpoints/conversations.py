@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-import uuid
-from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, UploadFile, status
@@ -12,6 +10,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -26,12 +25,10 @@ from app.schemas.conversation import (
     ConversationRead,
     ConversationUpdate,
 )
-from app.schemas.message import MessageCreate, MessageList, MessageRead
+from app.schemas.message import MessageList, MessageRead
 from app.services.llm_service import get_llm_service
 from app.services.memory_service import get_memory_service
-from app.services.metrics_service import MetricTracker, persist_metric
 from app.services.storage_service import delete_file, save_upload
-from app.utils.lang import detect_language
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -254,22 +251,64 @@ def list_messages(
 
 @router.post(
     "/{conversation_id}/messages",
-    summary="Send message and receive assistant reply",
-    description="Send user message and stream reply via SSE (default) or return JSON message object if ?stream=false.",
+    summary="Send multimodal message and receive assistant reply",
+    description="Send user message (text, images[], audio[]) and receive SSE stream (default) or JSON message object if ?stream=false.",
     responses={
         200: {"description": "SSE stream or completed assistant message"},
         201: {"model": MessageRead, "description": "Message created"},
     },
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "multipart/form-data": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "content": {"type": "string", "description": "Text prompt or question"},
+                            "language": {
+                                "type": "string",
+                                "description": "Optional ISO language code",
+                            },
+                            "images": {
+                                "type": "array",
+                                "items": {"type": "string", "format": "binary"},
+                                "description": "Image attachments",
+                            },
+                            "audio": {
+                                "type": "array",
+                                "items": {"type": "string", "format": "binary"},
+                                "description": "Audio attachments",
+                            },
+                        },
+                    }
+                },
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "content": {"type": "string"},
+                            "language": {"type": "string"},
+                            "role": {"type": "string", "default": "user"},
+                        },
+                        "required": ["content"],
+                    }
+                },
+            }
+        }
+    },
 )
 async def create_message(
     conversation_id: str,
-    msg_in: MessageCreate,
     request: Request,
     stream: bool = Query(True, description="Whether to stream assistant response via SSE"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    """Process user message with 3-tier memory context and stream/generate LLM response."""
+    """Process user message with multimodal orchestrator and stream SSE events or return JSON."""
+    from starlette.datastructures import UploadFile as StarletteUploadFile
+
+    from app.services.orchestrator import orchestrate_message
+
     conv = (
         db.query(Conversation)
         .filter(Conversation.id == conversation_id, Conversation.user_id == current_user.id)
@@ -281,157 +320,115 @@ async def create_message(
             detail="Conversation not found",
         )
 
-    # 1. Detect language if not provided
-    detected_lang = msg_in.language or detect_language(msg_in.content)
+    content_type = request.headers.get("content-type", "").lower()
+    user_text = ""
+    language = None
+    images: list[UploadFile] = []
+    audio_list: list[UploadFile] = []
 
-    # 2. Persist the incoming message
-    user_msg = Message(
-        conversation_id=conversation_id,
-        role=msg_in.role or "user",
-        content=msg_in.content,
-        language=detected_lang,
-        modalities=msg_in.modalities or ["text"],
-    )
-    db.add(user_msg)
-    conv.updated_at = datetime.now(UTC)
-    db.commit()
-    db.refresh(user_msg)
+    if "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+        form = await request.form()
+        raw_content = form.get("content")
+        if isinstance(raw_content, str):
+            user_text = raw_content.strip()
+        raw_lang = form.get("language")
+        if isinstance(raw_lang, str) and raw_lang.strip():
+            language = raw_lang.strip()
 
-    # If incoming message is not from user (e.g. system turn), return immediately
-    if user_msg.role != "user":
-        return JSONResponse(
-            content=MessageRead.model_validate(user_msg).model_dump(mode="json"),
-            status_code=status.HTTP_201_CREATED,
-        )
+        for key in ("images", "images[]", "image"):
+            for item in form.getlist(key):
+                if isinstance(item, (UploadFile, StarletteUploadFile)):
+                    images.append(item)  # type: ignore[arg-type]
 
-    # 3. Index user message into ChromaDB memory
-    memory_service = get_memory_service()
-    memory_service.add_message_memory(conversation_id, user_msg.id, user_msg.content, "user")
+        for key in ("audio", "audio[]"):
+            for item in form.getlist(key):
+                if isinstance(item, (UploadFile, StarletteUploadFile)):
+                    audio_list.append(item)  # type: ignore[arg-type]
 
-    # 4. Auto-title conversation on first turn if needed
-    _auto_title_conversation(conv, user_msg.content, db)
-
-    # 5. Build 3-tier prompt context
-    context_messages = memory_service.build_context(conversation_id, user_msg.content, db)
-
-    # 6. Synchronous mode (?stream=false)
-    if not stream:
-        llm = get_llm_service()
-        assistant_content, _ = llm.generate(context_messages)
-        assistant_msg = Message(
-            conversation_id=conversation_id,
-            role="assistant",
-            content=assistant_content,
-            language=detect_language(assistant_content),
-            modalities=["text"],
-        )
-        db.add(assistant_msg)
-        conv.updated_at = datetime.now(UTC)
-        db.commit()
-        db.refresh(assistant_msg)
-
-        # Index assistant reply in memory
-        memory_service.add_message_memory(
-            conversation_id, assistant_msg.id, assistant_msg.content, "assistant"
-        )
-
-        return JSONResponse(
-            content=MessageRead.model_validate(assistant_msg).model_dump(mode="json"),
-            status_code=status.HTTP_201_CREATED,
-        )
-
-    # 7. SSE Streaming mode (default)
-    async def sse_event_stream() -> AsyncGenerator[str, None]:
-        accumulated_text = ""
-        assistant_msg_id = str(uuid.uuid4())
-        tracker = MetricTracker(component="llm", operation="stream_generate")
-
+    else:
         try:
-            # Emit status event
-            yield 'event: status\ndata: {"status": "thinking"}\n\n'
-
-            llm = get_llm_service()
-            async for token in llm.stream_generate(context_messages):
-                # Disconnect check
-                if await request.is_disconnected():
-                    logger.info(
-                        "Client disconnected during stream", conversation_id=conversation_id
-                    )
-                    break
-
-                tracker.record_token()
-                accumulated_text += token
-                token_data = json.dumps({"token": token})
-                yield f"event: token\ndata: {token_data}\n\n"
-
-            # Generation complete: save assistant message to DB
-            if accumulated_text:
-                assistant_msg = Message(
-                    id=assistant_msg_id,
-                    conversation_id=conversation_id,
-                    role="assistant",
-                    content=accumulated_text,
-                    language=detect_language(accumulated_text),
-                    modalities=["text"],
-                )
-                db.add(assistant_msg)
-                conv.updated_at = datetime.now(UTC)
-                db.commit()
-
-                # Update vector memory
-                memory_service.add_message_memory(
-                    conversation_id, assistant_msg_id, accumulated_text, "assistant"
-                )
-
-            done_data = json.dumps(
-                {
-                    "message_id": assistant_msg_id,
-                    "content": accumulated_text,
-                    "role": "assistant",
-                }
+            body = await request.json()
+            if isinstance(body, dict):
+                user_text = str(body.get("content") or "").strip()
+                raw_lang = body.get("language")
+                language = str(raw_lang).strip() if raw_lang else None
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Malformed request payload",
             )
-            yield f"event: done\ndata: {done_data}\n\n"
 
-        except Exception as e:
-            logger.error(
-                "Error during SSE streaming", conversation_id=conversation_id, error=str(e)
-            )
-            err_data = json.dumps({"error": str(e)})
-            yield f"event: error\ndata: {err_data}\n\n"
+    if not user_text and not images and not audio_list:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Message must contain either text content or at least one attachment",
+        )
 
-            # Save partial output if available
-            if accumulated_text:
-                try:
-                    assistant_msg = Message(
-                        id=assistant_msg_id,
-                        conversation_id=conversation_id,
-                        role="assistant",
-                        content=accumulated_text,
-                        language=detect_language(accumulated_text),
-                        modalities=["text"],
-                    )
-                    db.add(assistant_msg)
-                    db.commit()
-                except Exception:
-                    pass
-        finally:
-            tracker.finalize()
-            persist_metric(
-                component=tracker.component,
-                operation=tracker.operation,
-                latency_ms=tracker.latency_ms,
-                extra=tracker.extra,
+    # Validate file limits before starting response stream
+    total_files = len(images) + len(audio_list)
+    if total_files > settings.MAX_FILES_PER_MESSAGE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Number of uploaded files ({total_files}) exceeds limit of {settings.MAX_FILES_PER_MESSAGE}",
+        )
+
+    # 1. Streaming response (default)
+    if stream:
+        return StreamingResponse(
+            orchestrate_message(
+                conversation_id=conversation_id,
+                user=current_user,
+                content=user_text,
+                language=language,
+                images=images,
+                audio=audio_list,
                 db=db,
-            )
+            ),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
-    return StreamingResponse(
-        sse_event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
+    # 2. Synchronous mode (?stream=false)
+    last_message_id = ""
+    async for event_line in orchestrate_message(
+        conversation_id=conversation_id,
+        user=current_user,
+        content=user_text,
+        language=language,
+        images=images,
+        audio=audio_list,
+        db=db,
+    ):
+        if "event: done" in event_line:
+            try:
+                for line in event_line.splitlines():
+                    if line.startswith("data: "):
+                        parsed = json.loads(line[6:].strip())
+                        last_message_id = parsed.get("message_id", "")
+            except Exception:
+                pass
+
+    assistant_msg = (
+        db.query(Message).filter(Message.id == last_message_id).first() if last_message_id else None
+    )
+    if not assistant_msg:
+        assistant_msg = (
+            db.query(Message)
+            .filter(Message.conversation_id == conversation_id, Message.role == "assistant")
+            .order_by(Message.created_at.desc())
+            .first()
+        )
+
+    if not assistant_msg:
+        raise HTTPException(status_code=500, detail="Failed to retrieve assistant reply")
+
+    return JSONResponse(
+        content=MessageRead.model_validate(assistant_msg).model_dump(mode="json"),
+        status_code=status.HTTP_201_CREATED,
     )
 
 

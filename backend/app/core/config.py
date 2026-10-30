@@ -109,6 +109,12 @@ class Settings(BaseSettings):
     DETECTOR_THRESHOLD: float = 0.5
     MAX_IMAGE_PIXELS: int = 89_478_485
 
+    # Model Memory Manager & Orchestration Settings
+    MAX_LOADED_MODELS: int = 2
+    MAX_CONCURRENT_INFERENCES: int = 1
+    MAX_FILES_PER_MESSAGE: int = 5
+    MAX_TOTAL_AUDIO_DURATION_PER_MESSAGE_SEC: int = 3600
+
     # JWT Authentication
     JWT_SECRET_KEY: str = "dev-secret-key-change-in-production-1234567890"
     JWT_ALGORITHM: str = "HS256"

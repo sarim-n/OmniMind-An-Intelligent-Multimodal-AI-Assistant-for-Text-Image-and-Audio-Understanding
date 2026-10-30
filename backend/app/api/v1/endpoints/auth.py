@@ -1,12 +1,12 @@
 """Authentication endpoints: register, login, and current user profile."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, get_current_user, hash_password, verify_password
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import Token, UserCreate, UserLogin, UserRead
+from app.schemas.auth import Token, UserCreate, UserRead
 
 router = APIRouter()
 
@@ -50,15 +50,72 @@ def register(
     "/login",
     response_model=Token,
     summary="User login",
-    description="Authenticate user with email and password to receive a JWT access token.",
+    description="Authenticate user with OAuth2 form data (username=email, password) or JSON body to receive a JWT access token.",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/x-www-form-urlencoded": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "username": {"type": "string", "description": "User email address"},
+                            "password": {"type": "string", "format": "password"},
+                            "grant_type": {"type": "string"},
+                            "scope": {"type": "string"},
+                            "client_id": {"type": "string"},
+                            "client_secret": {"type": "string"},
+                        },
+                        "required": ["username", "password"],
+                    }
+                },
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "email": {"type": "string", "format": "email"},
+                            "username": {"type": "string"},
+                            "password": {"type": "string"},
+                        },
+                        "required": ["password"],
+                    }
+                },
+            }
+        }
+    },
 )
-def login(
-    user_in: UserLogin,
+async def login(
+    request: Request,
     db: Session = Depends(get_db),
 ) -> Token:
-    """Authenticate credentials and generate a JWT access token."""
-    user = db.query(User).filter(User.email == user_in.email).first()
-    if not user or not verify_password(user_in.password, user.hashed_password):
+    """Authenticate credentials (OAuth2 form data or JSON body) and generate a JWT access token."""
+    content_type = request.headers.get("content-type", "").lower()
+    email_or_user = ""
+    password = ""
+
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form = await request.form()
+        email_or_user = str(form.get("username") or form.get("email") or "").strip()
+        password = str(form.get("password") or "")
+    else:
+        try:
+            body = await request.json()
+            if isinstance(body, dict):
+                email_or_user = str(body.get("email") or body.get("username") or "").strip()
+                password = str(body.get("password") or "")
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Malformed login request payload",
+            )
+
+    if not email_or_user or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both email/username and password are required",
+        )
+
+    user = db.query(User).filter(User.email == email_or_user).first()
+    if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

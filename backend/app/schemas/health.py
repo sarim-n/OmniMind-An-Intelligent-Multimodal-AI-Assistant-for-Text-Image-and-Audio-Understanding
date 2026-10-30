@@ -20,3 +20,6 @@ class HealthResponse(BaseModel):
     vision_settings: dict[str, str | int | float | bool] = Field(
         default_factory=dict, description="Active Vision and VLM configuration parameters"
     )
+    orchestration_settings: dict[str, str | int | float | bool] = Field(
+        default_factory=dict, description="Active Multimodal Orchestration configuration parameters"
+    )
