@@ -1,4 +1,4 @@
-.PHONY: help install run test lint format migrate
+.PHONY: help install run test lint format migrate download-models
 
 PYTHON ?= python
 VENV_DIR ?= backend/.venv
@@ -21,12 +21,17 @@ VENV_ALEMBIC = $(VENV_BIN)/alembic$(EXE)
 
 help:
 	@echo Intelligent Multimodal AI Assistant - Make Targets:
-	@echo   make install  - Install backend and frontend dependencies
-	@echo   make run      - Launch FastAPI backend server on port 8000
-	@echo   make test     - Run pytest test suite
-	@echo   make lint     - Run ruff, black --check, and mypy
-	@echo   make format   - Run ruff --fix and black auto-formatters
-	@echo   make migrate  - Execute Alembic database migrations
+	@echo   make install         - Install backend and frontend dependencies
+	@echo   make run             - Launch FastAPI backend server on port 8000
+	@echo   make test            - Run pytest test suite
+	@echo   make lint            - Run ruff, black --check, and mypy
+	@echo   make format          - Run ruff --fix and black auto-formatters
+	@echo   make migrate         - Execute Alembic database migrations
+	@echo   make download-models - Pre-download Hugging Face model weights for configured PROFILE
+
+download-models:
+	@echo Downloading model weights for configured PROFILE...
+	$(VENV_PYTHON) backend/scripts/download_models.py
 
 install:
 	@echo Installing backend dependencies...

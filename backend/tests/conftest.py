@@ -41,30 +41,37 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment() -> Generator[None, None, None]:
     """Setup temporary storage directory and create database tables."""
+    import app.db.session
+
     temp_dir = tempfile.mkdtemp(prefix="assistant_test_storage_")
     orig_storage = settings.STORAGE_DIR
     settings.STORAGE_DIR = Path(temp_dir)
+
+    orig_session_local = app.db.session.SessionLocal
+    app.db.session.SessionLocal = TestingSessionLocal
 
     Base.metadata.create_all(bind=test_engine)
 
     yield
 
     Base.metadata.drop_all(bind=test_engine)
+    app.db.session.SessionLocal = orig_session_local
     settings.STORAGE_DIR = orig_storage
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.fixture
 def db() -> Generator[Session, None, None]:
-    """Yield a database session and roll back changes after test."""
+    """Yield a database session and clean tables after each test."""
     connection = test_engine.connect()
-    transaction = connection.begin()
     session = TestingSessionLocal(bind=connection)
 
     yield session
 
     session.close()
-    transaction.rollback()
+    for table in reversed(Base.metadata.sorted_tables):
+        connection.execute(table.delete())
+    connection.commit()
     connection.close()
 
 

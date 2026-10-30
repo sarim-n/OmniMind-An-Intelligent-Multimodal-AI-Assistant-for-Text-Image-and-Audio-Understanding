@@ -30,9 +30,8 @@ This repository adheres strictly to the **Free-Only and Permissive Open-Source c
 | **PekingU/rtdetr_r18vd** | Model (Object Detection) | Apache-2.0 | [Hugging Face](https://huggingface.co/PekingU/rtdetr_r18vd) |
 | **PekingU/rtdetr_r50vd** | Model (Object Detection) | Apache-2.0 | [Hugging Face](https://huggingface.co/PekingU/rtdetr_r50vd) |
 | **PekingU/rtdetr_r101vd** | Model (Object Detection) | Apache-2.0 | [Hugging Face](https://huggingface.co/PekingU/rtdetr_r101vd) |
-| **BAAI/bge-small-en-v1.5** | Model (Text Embedding) | MIT / Apache-2.0 | [Hugging Face](https://huggingface.co/BAAI/bge-small-en-v1.5) |
-| **BAAI/bge-base-en-v1.5** | Model (Text Embedding) | MIT / Apache-2.0 | [Hugging Face](https://huggingface.co/BAAI/bge-base-en-v1.5) |
-| **BAAI/bge-large-en-v1.5** | Model (Text Embedding) | MIT / Apache-2.0 | [Hugging Face](https://huggingface.co/BAAI/bge-large-en-v1.5) |
+| **intfloat/multilingual-e5-small** | Model (Multilingual Text Embedding) | MIT | [Hugging Face](https://huggingface.co/intfloat/multilingual-e5-small) |
+| **BAAI/bge-m3** | Model (Multilingual Text Embedding) | MIT / Apache-2.0 | [Hugging Face](https://huggingface.co/BAAI/bge-m3) |
 | **google/siglip-base-patch16-224** | Model (Image Embedding) | Apache-2.0 | [Hugging Face](https://huggingface.co/google/siglip-base-patch16-224) |
 | **google/siglip-so400m-patch14-384** | Model (Image Embedding) | Apache-2.0 | [Hugging Face](https://huggingface.co/google/siglip-so400m-patch14-384) |
 | **FastAPI** | Library (Backend) | MIT | [tiangolo/fastapi](https://github.com/tiangolo/fastapi) |

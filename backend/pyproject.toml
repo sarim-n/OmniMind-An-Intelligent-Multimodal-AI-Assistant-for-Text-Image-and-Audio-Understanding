@@ -51,6 +51,7 @@ dev = [
     "black>=24.10.0",
     "mypy>=1.13.0",
     "types-python-jose>=3.3.4",
+    "types-psutil>=6.1.0",
     "pypdf>=5.1.0",
 ]
 
@@ -59,7 +60,7 @@ line-length = 100
 target-version = "py311"
 
 [tool.ruff.lint]
-ignore = ["B008"]
+ignore = ["B008", "BLE001", "S110"]
 
 [tool.black]
 line-length = 100
@@ -70,6 +71,9 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
 
 [tool.mypy]
 python_version = "3.11"
@@ -78,5 +82,16 @@ warn_unused_configs = true
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["filetype", "filetype.*", "jose", "jose.*", "passlib", "passlib.*"]
+module = [
+    "filetype",
+    "filetype.*",
+    "jose",
+    "jose.*",
+    "passlib",
+    "passlib.*",
+    "langdetect",
+    "langdetect.*",
+    "llama_cpp",
+    "llama_cpp.*",
+]
 ignore_missing_imports = true

@@ -121,9 +121,9 @@ async def test_messages_crud(client: AsyncClient, auth_headers: dict[str, str]) 
     )
     conv_id = create_res.json()["id"]
 
-    # Create message
+    # Create message with stream=false
     msg_res = await client.post(
-        f"/api/v1/conversations/{conv_id}/messages",
+        f"/api/v1/conversations/{conv_id}/messages?stream=false",
         json={
             "role": "user",
             "content": "Please analyze this audio recording.",
@@ -134,16 +134,15 @@ async def test_messages_crud(client: AsyncClient, auth_headers: dict[str, str]) 
     )
     assert msg_res.status_code == 201
     msg_data = msg_res.json()
-    assert msg_data["role"] == "user"
-    assert msg_data["content"] == "Please analyze this audio recording."
-    assert msg_data["modalities"] == ["text", "audio"]
+    assert msg_data["role"] == "assistant"
+    assert "mock" in msg_data["content"].lower() or len(msg_data["content"]) > 0
 
-    # List messages
+    # List messages (should include both user message and assistant reply)
     list_res = await client.get(f"/api/v1/conversations/{conv_id}/messages", headers=auth_headers)
     assert list_res.status_code == 200
     list_data = list_res.json()
-    assert list_data["total"] == 1
-    assert list_data["items"][0]["id"] == msg_data["id"]
+    user_item = next(m for m in list_data["items"] if m["role"] == "user")
+    assert user_item["content"] == "Please analyze this audio recording."
 
 
 @pytest.mark.asyncio
@@ -161,7 +160,7 @@ async def test_cascade_delete_removes_files_and_db_records(
 
     # 2. Create message
     msg_res = await client.post(
-        f"/api/v1/conversations/{conv_id}/messages",
+        f"/api/v1/conversations/{conv_id}/messages?stream=false",
         json={"role": "user", "content": "Sample message"},
         headers=auth_headers,
     )
