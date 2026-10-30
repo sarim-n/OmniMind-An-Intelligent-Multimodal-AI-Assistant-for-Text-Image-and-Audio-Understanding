@@ -18,6 +18,9 @@ dependencies = [
     "python-multipart>=0.0.18",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.0",
+    "filetype>=1.2.0",
+    "email-validator>=2.0.0",
     "chromadb>=0.5.20",
     "sentence-transformers>=3.3.0",
     "transformers>=4.46.0",
@@ -47,12 +50,16 @@ dev = [
     "ruff>=0.8.0",
     "black>=24.10.0",
     "mypy>=1.13.0",
+    "types-python-jose>=3.3.4",
     "pypdf>=5.1.0",
 ]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
+ignore = ["B008"]
 
 [tool.black]
 line-length = 100
@@ -68,4 +75,8 @@ pythonpath = ["."]
 python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["filetype", "filetype.*", "jose", "jose.*", "passlib", "passlib.*"]
 ignore_missing_imports = true

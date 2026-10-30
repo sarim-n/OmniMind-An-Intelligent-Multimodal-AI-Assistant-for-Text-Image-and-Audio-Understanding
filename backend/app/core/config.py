@@ -65,8 +65,8 @@ class Settings(BaseSettings):
     PROFILE: ProfileType = "cpu"
     MOCK_MODELS: bool = False
 
-    # Database
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/multimodal_ai"
+    # Database (defaults to SQLite for local dev/test, PostgreSQL via env in docker-compose)
+    DATABASE_URL: str = "sqlite:///./storage/dev.db"
 
     # Storage paths
     STORAGE_DIR: Path = Path("storage")

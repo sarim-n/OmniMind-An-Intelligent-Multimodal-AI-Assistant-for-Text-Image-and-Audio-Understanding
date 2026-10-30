@@ -58,6 +58,9 @@ pnpm-debug.log*
 storage/**
 !storage/**/
 !storage/**/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
 
 # Vector Database and cache directories
 chroma_db/

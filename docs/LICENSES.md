@@ -54,6 +54,9 @@ This repository adheres strictly to the **Free-Only and Permissive Open-Source c
 | **langdetect** | Library (Language Detection) | Apache-2.0 | [Mimino666/langdetect](https://github.com/Mimino666/langdetect) |
 | **python-jose** | Library (JWT Cryptography) | MIT | [mpdavis/python-jose](https://github.com/mpdavis/python-jose) |
 | **passlib** | Library (Password Hashing) | BSD-3-Clause | [passlib](https://foss.heptapod.net/python-libs/passlib) |
+| **bcrypt** | Library (Password Hashing & Salts) | Apache-2.0 | [pyca/bcrypt](https://github.com/pyca/bcrypt) |
+| **filetype** | Library (MIME / Magic Byte Sniffing) | MIT | [h2non/filetype.py](https://github.com/h2non/filetype.py) |
+| **email-validator** | Library (Email Verification) | CC0-1.0 / Unlicense | [JoshData/python-email-validator](https://github.com/JoshData/python-email-validator) |
 | **bitsandbytes** | Library (4-bit / 8-bit Quantization) | MIT | [bitsandbytes-foundation/bitsandbytes](https://github.com/bitsandbytes-foundation/bitsandbytes) |
 | **pynvml** | Library (NVIDIA Management) | BSD-3-Clause | [gpuopenanalytics/pynvml](https://github.com/gpuopenanalytics/pynvml) |
 | **llama-cpp-python** | Library (CPU GGUF Inference) | MIT | [abetlen/llama-cpp-python](https://github.com/abetlen/llama-cpp-python) |

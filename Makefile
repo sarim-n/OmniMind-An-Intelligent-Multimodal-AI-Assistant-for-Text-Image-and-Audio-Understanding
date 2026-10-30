@@ -57,4 +57,4 @@ format:
 
 migrate:
 	@echo Running database migrations...
-	$(VENV_ALEMBIC) upgrade head
+	$(VENV_ALEMBIC) -c backend/alembic.ini upgrade head
