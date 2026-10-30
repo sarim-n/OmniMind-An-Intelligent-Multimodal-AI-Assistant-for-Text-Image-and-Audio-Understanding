@@ -47,7 +47,7 @@ def classify_intent(
 
     # Rule 1: Report generation
     report_patterns = [
-        r"\b(?:generate|create|export|make|build|write|download)\s+(?:a\s+)?report\b",
+        r"\b(?:generate|create|export|make|build|write|download|compile)\b.*?\breport\b",
         r"\breport\s+on\b",
         r"\bpdf\s+report\b",
     ]

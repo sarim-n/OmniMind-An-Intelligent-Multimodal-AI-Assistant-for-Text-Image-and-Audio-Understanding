@@ -79,6 +79,12 @@ class Settings(BaseSettings):
     MEETING_MIN_DURATION_SEC: float = 120.0
     HF_TOKEN: str | None = None
 
+    # Report & PDF Settings
+    FONTS_DIR: Path = Path("backend/assets/fonts")
+    REPORTS_DIR: Path = Path("storage/reports")
+    REPORT_MAX_SECTIONS: int = 20
+    REPORT_DEFAULT_LENGTH: str = "standard"
+
     # Optional model ID overrides (defaults to profile selection)
     LLM_MODEL_ID: str | None = None
     VLM_MODEL_ID: str | None = None

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Any
 
@@ -154,46 +153,25 @@ class MeetingInsightsService:
         segments: list[dict[str, Any]],
         total_duration: float,
     ) -> list[TalkTimeItem]:
-        """Compute talk-time distribution across speakers for charts."""
+        """Compute talk-time distribution across speakers for charts only when diarization is available."""
+        if not diarized_turns:
+            return []
+
         dur = max(total_duration, 1.0)
+        speaker_times: dict[str, float] = {}
+        for turn in diarized_turns:
+            spk = turn.get("speaker", "Speaker")
+            span = max(0.0, float(turn.get("end", 0.0)) - float(turn.get("start", 0.0)))
+            speaker_times[spk] = speaker_times.get(spk, 0.0) + span
 
-        if diarized_turns:
-            speaker_times: dict[str, float] = {}
-            for turn in diarized_turns:
-                spk = turn.get("speaker", "Speaker")
-                span = max(0.0, float(turn.get("end", 0.0)) - float(turn.get("start", 0.0)))
-                speaker_times[spk] = speaker_times.get(spk, 0.0) + span
-
-            total_speech = sum(speaker_times.values()) or dur
-            return [
-                TalkTimeItem(
-                    speaker=spk,
-                    duration_sec=round(s_dur, 2),
-                    percentage=round((s_dur / total_speech) * 100.0, 1),
-                )
-                for spk, s_dur in speaker_times.items()
-            ]
-
-        # Fallback: estimate from transcript speaker tags or partition into primary speakers
-        speakers_detected: dict[str, float] = {}
-        for s in segments:
-            raw_text = s.get("text", "")
-            match = re.match(r"^([A-Z][a-zA-Z\s]{1,15}):", raw_text)
-            spk = match.group(1).strip() if match else "Speaker 1"
-            span = max(1.0, float(s.get("end", 0.0)) - float(s.get("start", 0.0)))
-            speakers_detected[spk] = speakers_detected.get(spk, 0.0) + span
-
-        if not speakers_detected:
-            speakers_detected["Speaker 1"] = dur
-
-        total_spk_dur = sum(speakers_detected.values())
+        total_speech = sum(speaker_times.values()) or dur
         return [
             TalkTimeItem(
                 speaker=spk,
                 duration_sec=round(s_dur, 2),
-                percentage=round((s_dur / total_spk_dur) * 100.0, 1),
+                percentage=round((s_dur / total_speech) * 100.0, 1),
             )
-            for spk, s_dur in speakers_detected.items()
+            for spk, s_dur in speaker_times.items()
         ]
 
     def _fallback_meeting_insights(

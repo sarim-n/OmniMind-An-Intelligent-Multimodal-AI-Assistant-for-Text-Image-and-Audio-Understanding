@@ -80,7 +80,8 @@ def test_meeting_insights_schema_and_timeline_ordering() -> None:
     assert len(insights.action_items) > 0
     assert len(insights.unresolved_questions) > 0
     assert len(insights.per_topic_timeline) > 0
-    assert len(insights.talk_time) > 0
+    # No speaker talk time when diarization is not available
+    assert len(insights.talk_time) == 0
     assert len(insights.topic_timeline) > 0
     assert len(insights.executive_summary.splitlines()) >= 3
 
@@ -96,7 +97,7 @@ def test_meeting_insights_schema_and_timeline_ordering() -> None:
 
 
 def test_diarization_absence_graceful_fallback() -> None:
-    """Verify that when pyannote / HF_TOKEN is absent, no error occurs and fallback talk time is returned."""
+    """Verify that when pyannote / HF_TOKEN is absent, no error occurs and no speaker stats are returned."""
     service = get_meeting_insights_service()
     insights = service.generate_meeting_insights(
         transcript_text="Speaker 1: Hello. Speaker 2: World.",
@@ -105,9 +106,20 @@ def test_diarization_absence_graceful_fallback() -> None:
         audio_path=Path("non_existent_audio.wav"),
     )
     assert isinstance(insights, MeetingInsights)
-    assert len(insights.talk_time) > 0
-    total_pct = sum(t.percentage for t in insights.talk_time)
-    assert 99.0 <= total_pct <= 101.0  # Around 100%
+    assert len(insights.talk_time) == 0
+
+
+def test_diarization_present_computes_talk_time() -> None:
+    """Verify that when diarization turns are provided, speaker talk-time distribution is calculated."""
+    service = get_meeting_insights_service()
+    turns = [
+        {"start": 0.0, "end": 60.0, "speaker": "SPEAKER_00"},
+        {"start": 60.0, "end": 120.0, "speaker": "SPEAKER_01"},
+    ]
+    talk_time = service._compute_talk_time(turns, [], 120.0)
+    assert len(talk_time) == 2
+    assert talk_time[0].percentage == 50.0
+    assert talk_time[1].percentage == 50.0
 
 
 @pytest.mark.asyncio

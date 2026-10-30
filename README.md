@@ -291,6 +291,68 @@ $meeting.action_items | ForEach-Object {
 
 ---
 
+## Structured Reports & PDF Export (Phase 7)
+
+OmniMind can synthesize an entire multimodal conversation (dialogue history, audio transcripts, meeting insights, image analyses, and telemetry) into an auditable, multi-page PDF intelligence report.
+
+- **Factual Integrity & Non-Hallucination**:
+  - Tables for detected objects, action items, meeting timelines, and telemetry are populated directly from persistent database records.
+  - The local LLM generates only narrative elements (executive summary, thematic sections, cross-modal observations, conclusions, and recommendations).
+- **ReportLab Platypus Engine**:
+  - Built with ReportLab Platypus (BSD-3-Clause) — strictly zero GPL/AGPL dependencies.
+  - Multi-page documents featuring cover pages, structured tables of contents, running headers and footers with two-pass page numbering ("Page X of Y"), and styled tables with repeated headers across page splits.
+- **Multilingual Script Support**:
+  - Automatically selects typography per paragraph based on script detection (`\u0900-\u097F` for Devanagari, `\u0B80-\u0BFF` for Tamil, Latin for English).
+  - Uses Google Noto Sans (OFL-1.1), downloadable via `make download-fonts`.
+- **Security & Prompt Hygiene**:
+  - All transcripts, OCR text, and user inputs are handled as untrusted passive evidence enclosed in delimited blocks.
+  - Stray XML/HTML characters (`<`, `>`, `&`) are escaped to prevent PDF compilation crashes.
+
+### PowerShell Reports Example (Mock Mode)
+
+```powershell
+$token = "<your_bearer_token>"
+$headers = @{ 
+    Authorization = "Bearer $token"
+    "Content-Type" = "application/json"
+}
+
+# 1. Enqueue Report Generation Job
+$reportReq = @{
+    conversation_id = $convId
+    options = @{
+        length = "standard"        # brief | standard | detailed
+        language = "en"            # or "hi", "ta"
+        include_images = $true
+        include_metrics = $true
+    }
+} | ConvertTo-Json
+
+$job = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/reports" `
+    -Method Post -Headers $headers -Body $reportReq
+$jobId = $job.job_id
+Write-Host "Enqueued Report Job: $jobId"
+
+# 2. Poll Job Status
+do {
+    Start-Sleep -Seconds 1
+    $statusRes = Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/jobs/$jobId" `
+        -Method Get -Headers $headers
+    Write-Host "Job Status: $($statusRes.status) ($([int]($statusRes.progress * 100))%)"
+} while ($statusRes.status -in @("queued", "running"))
+
+$reportId = $statusRes.result.report_id
+Write-Host "Report Generated Successfully: $reportId"
+
+# 3. Download Compiled PDF
+$pdfOutPath = "OmniMind_Report.pdf"
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/reports/$reportId/pdf" `
+    -Method Get -Headers $headers -OutFile $pdfOutPath
+Write-Host "Downloaded PDF Report to: $pdfOutPath"
+```
+
+---
+
 ## Running with Real Models
 
 By default, `MOCK_MODELS=true` is enabled for fast offline tests and CI. To run real Hugging Face open-source models:

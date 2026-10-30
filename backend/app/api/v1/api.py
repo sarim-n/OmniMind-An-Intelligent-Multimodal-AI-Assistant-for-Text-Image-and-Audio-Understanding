@@ -9,6 +9,7 @@ from app.api.v1.endpoints import (
     health,
     images,
     jobs,
+    reports,
     search,
 )
 
@@ -19,4 +20,5 @@ api_router.include_router(conversations.router, prefix="/conversations", tags=["
 api_router.include_router(audio.router, prefix="/audio", tags=["Audio"])
 api_router.include_router(images.router, prefix="/images", tags=["Images"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
+api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
 api_router.include_router(search.router, prefix="/search", tags=["Search"])

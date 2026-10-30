@@ -53,4 +53,10 @@ async def health_check() -> HealthResponse:
             "meeting_min_duration_sec": settings.MEETING_MIN_DURATION_SEC,
             "hf_token_configured": bool(settings.HF_TOKEN),
         },
+        report_settings={
+            "fonts_dir": str(settings.FONTS_DIR),
+            "reports_dir": str(settings.REPORTS_DIR),
+            "report_max_sections": settings.REPORT_MAX_SECTIONS,
+            "report_default_length": settings.REPORT_DEFAULT_LENGTH,
+        },
     )

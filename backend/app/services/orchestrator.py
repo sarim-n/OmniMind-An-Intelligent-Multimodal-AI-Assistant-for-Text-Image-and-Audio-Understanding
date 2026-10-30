@@ -765,13 +765,50 @@ async def orchestrate_message(
         ttft_ms: float | None = None
         stream_start_time = time.perf_counter()
 
-        # Handle placeholder intents: generate_report (Phase 7)
+        # Handle generate_report intent
         if intent == "generate_report":
-            static_reply = (
-                "Report generation is scheduled for Phase 7. In the meantime, I can analyze your images, "
-                "transcribe your audio, and answer questions across all modalities."
+            yield format_sse(
+                "status",
+                {
+                    "stage": "report_generation",
+                    "message": "Synthesizing multimodal intelligence report",
+                },
             )
-            for word in static_reply.split(" "):
+            from app.services.report_service import get_report_service
+
+            report_svc = get_report_service()
+            try:
+                report = await asyncio.to_thread(
+                    report_svc.generate,
+                    conversation_id=conversation_id,
+                    user_id=user.id,
+                    options={"language": detected_lang or "en"},
+                    db=None,
+                )
+                pdf_url = f"/api/v1/reports/{report.id}/pdf"
+                yield format_sse(
+                    "report",
+                    {
+                        "report_id": report.id,
+                        "title": report.title,
+                        "pdf_url": pdf_url,
+                    },
+                )
+                summary_preview = (
+                    (report.content.get("executive_summary") or "").strip()
+                    if isinstance(report.content, dict)
+                    else ""
+                )
+                reply = (
+                    f"I have compiled your comprehensive multimodal intelligence report: **{report.title}**.\n\n"
+                    f"{summary_preview[:280]}...\n\n"
+                    f"You can download the full PDF report here: [Download PDF]({pdf_url})"
+                )
+            except Exception as e:
+                logger.error("Report generation during chat stream failed", error=str(e))
+                reply = f"I encountered an issue compiling the report: {e!s}"
+
+            for word in reply.split(" "):
                 yield format_sse("token", {"text": word + " ", "token": word + " "})
                 accumulated_text += word + " "
                 await asyncio.sleep(0.01)

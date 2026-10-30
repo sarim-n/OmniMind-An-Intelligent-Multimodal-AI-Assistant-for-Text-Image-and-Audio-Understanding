@@ -33,6 +33,10 @@ download-models:
 	@echo Downloading model weights for configured PROFILE...
 	$(VENV_PYTHON) backend/scripts/download_models.py
 
+download-fonts:
+	@echo Downloading multilingual Noto Sans fonts into backend/assets/fonts...
+	$(VENV_PYTHON) backend/scripts/download_fonts.py
+
 install:
 	@echo Installing backend dependencies...
 	uv pip install --python $(VENV_PYTHON) -e "./backend[dev]" || pip install -e "./backend[dev]"

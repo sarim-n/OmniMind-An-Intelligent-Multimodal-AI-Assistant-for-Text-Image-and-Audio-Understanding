@@ -49,6 +49,8 @@ This repository adheres strictly to the **Free-Only and Permissive Open-Source c
 | **ChromaDB** | Library (Vector Database) | Apache-2.0 | [chroma-core/chroma](https://github.com/chroma-core/chroma) |
 | **OpenCV Python Headless** | Library (Vision Processing) | Apache-2.0 | [opencv/opencv](https://github.com/opencv/opencv) |
 | **ReportLab** | Library (PDF Generation) | BSD-3-Clause | [reportlab](https://www.reportlab.com) |
+| **pypdf** | Library (PDF Inspection & Processing) | BSD-3-Clause | [py-pdf/pypdf](https://github.com/py-pdf/pypdf) |
+| **Google Noto Sans Fonts (Latin, Devanagari, Tamil)** | Typography / Asset (Multilingual PDF) | OFL-1.1 | [googlefonts/noto-fonts](https://github.com/googlefonts/noto-fonts) |
 | **JiWER** | Library (ASR Evaluation / WER) | Apache-2.0 | [jitsi/jiwer](https://github.com/jitsi/jiwer) |
 | **psutil** | Library (System Resource Monitoring) | BSD-3-Clause | [giampaolo/psutil](https://github.com/giampaolo/psutil) |
 | **langdetect** | Library (Language Detection) | Apache-2.0 | [Mimino666/langdetect](https://github.com/Mimino666/langdetect) |

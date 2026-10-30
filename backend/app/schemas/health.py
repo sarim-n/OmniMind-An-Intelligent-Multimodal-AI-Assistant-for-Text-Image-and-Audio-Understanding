@@ -29,3 +29,7 @@ class HealthResponse(BaseModel):
         default_factory=dict,
         description="Active Knowledge Vault and Search configuration parameters",
     )
+    report_settings: dict[str, str | int | float | bool] = Field(
+        default_factory=dict,
+        description="Active Report and PDF configuration parameters",
+    )
